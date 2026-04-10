@@ -1,0 +1,288 @@
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+import type { Employee, TimeEntry } from '../db/database'
+import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from './timeCalc'
+import {
+  formatDateKey,
+  formatLongDate,
+  formatShortDate,
+  getFortnightDates,
+  getIsoWeekNumber,
+  isWeekend,
+} from './weekHelpers'
+
+type ExportClientSummary = {
+  clientName: string
+  totalMinutes: number
+  uniqueDates: Set<string>
+}
+
+type GenerateTimesheetPdfInput = {
+  employee: Employee
+  fortnightStart: Date
+  entries: TimeEntry[]
+}
+
+const detectImageFormat = (dataUrl: string) => {
+  if (dataUrl.startsWith('data:image/png')) {
+    return 'PNG'
+  }
+
+  if (dataUrl.startsWith('data:image/webp')) {
+    return 'WEBP'
+  }
+
+  return 'JPEG'
+}
+
+const sanitizeFilePart = (value: string) => value.replace(/[^a-z0-9-_]+/gi, '_').replace(/^_+|_+$/g, '')
+
+const sortEntries = (entries: TimeEntry[]) => [...entries].sort((left, right) => left.sortOrder - right.sortOrder)
+
+const groupEntriesByDate = (entries: TimeEntry[]) => {
+  const grouped = new Map<string, TimeEntry[]>()
+
+  for (const entry of entries) {
+    const current = grouped.get(entry.date) ?? []
+    current.push(entry)
+    grouped.set(entry.date, current)
+  }
+
+  for (const [date, dateEntries] of grouped) {
+    grouped.set(date, sortEntries(dateEntries))
+  }
+
+  return grouped
+}
+
+const buildClientSummary = (entries: TimeEntry[]) => {
+  const summary = new Map<string, ExportClientSummary>()
+
+  for (const entry of entries) {
+    const current =
+      summary.get(entry.clientName) ??
+      ({ clientName: entry.clientName, totalMinutes: 0, uniqueDates: new Set<string>() } satisfies ExportClientSummary)
+
+    current.totalMinutes += calculateEntryMinutes(entry)
+    current.uniqueDates.add(entry.date)
+    summary.set(entry.clientName, current)
+  }
+
+  return [...summary.values()].sort((left, right) => right.totalMinutes - left.totalMinutes)
+}
+
+const addHeader = (
+  doc: jsPDF,
+  employee: Employee,
+  weekOneNumber: number,
+  weekTwoNumber: number,
+  periodStart: Date,
+  periodEnd: Date,
+) => {
+  if (employee.exportLogo) {
+    try {
+      doc.addImage(employee.exportLogo, detectImageFormat(employee.exportLogo), 14, 12, 32, 18)
+    } catch (error) {
+      console.error('Failed to add export logo to PDF', error)
+    }
+  }
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.text('WERKURENREGISTRATIE', 52, 18)
+
+  doc.setFontSize(12)
+  doc.text(`Naam: ${employee.name}`, 52, 25)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  doc.text(`Week ${weekOneNumber}-${weekTwoNumber}`, 52, 31)
+  doc.text(`${formatLongDate(periodStart)} - ${formatLongDate(periodEnd)}`, 52, 37)
+
+  doc.setDrawColor(210, 214, 221)
+  doc.line(14, 42, 196, 42)
+}
+
+const addWeekTable = (
+  doc: jsPDF,
+  weekTitle: string,
+  weekDates: Date[],
+  entriesByDate: Map<string, TimeEntry[]>,
+  startY: number,
+) => {
+  const body: Array<Array<string>> = []
+
+  for (const date of weekDates) {
+    const dateKey = formatDateKey(date)
+    const dateEntries = entriesByDate.get(dateKey) ?? []
+
+    if (dateEntries.length === 0) {
+      body.push([
+        formatShortDate(date),
+        isWeekend(date) ? 'Weekend' : '—',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '—',
+      ])
+      continue
+    }
+
+    const dayTotal = calculateDayTotalMinutes(dateEntries)
+
+    dateEntries.forEach((entry, index) => {
+      body.push([
+        index === 0 ? formatShortDate(date) : '',
+        entry.clientName,
+        entry.location,
+        entry.startTime,
+        entry.endTime,
+        entry.breakMinutes > 0 ? formatMinutesAsHours(entry.breakMinutes) : '',
+        entry.isDriver,
+        index === dateEntries.length - 1 ? formatMinutesAsHours(dayTotal) : '',
+      ])
+
+      if (entry.notes) {
+        body.push(['', `opm: ${entry.notes}`, '', '', '', '', '', ''])
+      }
+    })
+  }
+
+  const weekMinutes = weekDates.reduce((total, date) => {
+    const dateEntries = entriesByDate.get(formatDateKey(date)) ?? []
+    return total + calculateDayTotalMinutes(dateEntries)
+  }, 0)
+
+  autoTable(doc, {
+    startY,
+    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal']],
+    body,
+    foot: [['', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: 2.5,
+      lineColor: [220, 220, 220],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [245, 245, 246],
+      textColor: [26, 26, 26],
+      fontStyle: 'bold',
+    },
+    footStyles: {
+      fillColor: [245, 245, 246],
+      textColor: [26, 26, 26],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [249, 249, 246],
+    },
+    columnStyles: {
+      0: { cellWidth: 20 },
+      1: { cellWidth: 36 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 16 },
+      4: { cellWidth: 16 },
+      5: { cellWidth: 16 },
+      6: { cellWidth: 18 },
+      7: { cellWidth: 20, halign: 'right', fontStyle: 'bold' },
+    },
+    didParseCell: (hookData) => {
+      const row = hookData.row.raw as string[] | undefined
+
+      if (row?.[1]?.startsWith('opm:')) {
+        hookData.cell.styles.fontStyle = 'italic'
+        hookData.cell.styles.textColor = [107, 114, 128]
+      }
+
+      if (row?.[1] === 'Weekend') {
+        hookData.cell.styles.fillColor = [245, 245, 246]
+      }
+    },
+  })
+
+  return (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
+}
+
+export async function generateTimesheetPdf({
+  employee,
+  fortnightStart,
+  entries,
+}: GenerateTimesheetPdfInput) {
+  const doc = new jsPDF({ format: 'a4', orientation: 'portrait', unit: 'mm' })
+  const fortnightDates = getFortnightDates(fortnightStart)
+  const periodStart = fortnightDates[0]
+  const periodEnd = fortnightDates[13]
+  const weekOneNumber = getIsoWeekNumber(fortnightDates[0])
+  const weekTwoNumber = getIsoWeekNumber(fortnightDates[7])
+  const entriesByDate = groupEntriesByDate(entries)
+  const summary = buildClientSummary(entries)
+  const totalMinutes = entries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0)
+  const totalDays = new Set(entries.map((entry) => entry.date)).size
+
+  addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
+
+  let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 48)
+  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 8)
+
+  autoTable(doc, {
+    startY: currentY + 10,
+    head: [['Klant', 'Dagen', 'Uren']],
+    body: summary.map((client) => [
+      client.clientName,
+      String(client.uniqueDates.size),
+      formatMinutesAsHours(client.totalMinutes),
+    ]),
+    foot: [['TOTAAL 2 WEKEN', String(totalDays), formatMinutesAsHours(totalMinutes)]],
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: 3,
+      lineColor: [220, 220, 220],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [245, 245, 246],
+      textColor: [26, 26, 26],
+      fontStyle: 'bold',
+    },
+    footStyles: {
+      fillColor: [245, 245, 246],
+      textColor: [26, 26, 26],
+      fontStyle: 'bold',
+    },
+    columnStyles: {
+      2: { halign: 'right' },
+    },
+  })
+
+  const pageCount = doc.getNumberOfPages()
+
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.text(`pagina ${page}/${pageCount}`, 196, 289, { align: 'right' })
+  }
+
+  const fileName = `Werkuren_${sanitizeFilePart(employee.name)}_Week_${weekOneNumber}-${weekTwoNumber}.pdf`
+  const pdfBlob = doc.output('blob')
+  const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+
+  return {
+    doc,
+    fileName,
+    pdfBlob,
+    pdfFile,
+    weekStart: formatDateKey(periodStart),
+    weekEnd: formatDateKey(periodEnd),
+    weekOneNumber,
+    weekTwoNumber,
+  }
+}
