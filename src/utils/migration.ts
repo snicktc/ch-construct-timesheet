@@ -101,6 +101,7 @@ export async function migrateLegacyTimesheetData() {
     migrateLegacyStorageKeys()
 
     const targetRecordCount = await countTargetRecords()
+    let copiedLegacyDatabase = false
 
     if (legacyDbExists && targetRecordCount === 0) {
       const legacyDb = new LegacyTimesheetDatabase()
@@ -137,11 +138,14 @@ export async function migrateLegacyTimesheetData() {
       })
 
       await legacyDb.close()
+      copiedLegacyDatabase = true
     }
 
-    removeLegacyStorageKeys()
+    if (!legacyDbExists || copiedLegacyDatabase) {
+      removeLegacyStorageKeys()
+    }
 
-    if (legacyDbExists) {
+    if (legacyDbExists && copiedLegacyDatabase) {
       await Dexie.delete(LEGACY_APP_NAME)
     }
 

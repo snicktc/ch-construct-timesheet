@@ -28,7 +28,6 @@ const getNowMinutes = (value: Date) => value.getHours() * 60 + value.getMinutes(
 export const getNotificationSupport = () => ({
   notifications: typeof window !== 'undefined' && 'Notification' in window,
   serviceWorker: typeof navigator !== 'undefined' && 'serviceWorker' in navigator,
-  share: typeof navigator !== 'undefined' && 'share' in navigator,
 })
 
 export const getNotificationSettings = (): NotificationSettings => {

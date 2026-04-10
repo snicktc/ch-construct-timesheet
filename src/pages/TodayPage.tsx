@@ -52,7 +52,7 @@ export function TodayPage({
   const selectedDateKey = formatDateKey(selectedDate)
   const todayDateKey = formatDateKey(new Date())
   const weekdayDates = useMemo(() => getWeekdayDates(selectedDate), [selectedDate])
-  const weekdayDateKeys = weekdayDates.map(formatDateKey)
+  const weekdayDateKeys = useMemo(() => weekdayDates.map(formatDateKey), [weekdayDates])
 
   const { clients, createClient } = useClients()
   const {

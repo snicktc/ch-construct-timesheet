@@ -6,6 +6,7 @@ PWA voor werkurenregistratie per profiel, met lokale opslag in IndexedDB, 2-weke
 
 - Functioneel: `docs/functionele-documentatie.md`
 - Technisch: `docs/technische-documentatie.md`
+- Profiling: `docs/runtime-profiling-plan.md`
 - Changelog: `CHANGELOG.md`
 - Bronspecificatie: `SPEC.md`
 

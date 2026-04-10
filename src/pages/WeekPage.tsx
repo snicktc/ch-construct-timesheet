@@ -129,7 +129,12 @@ export function WeekPage({
   const periodKey = `${fortnightStartKey}_${fortnightEndKey}`
 
   useEffect(() => {
-    if (!isFortnightComplete || preparedSharePeriodKey === periodKey || latestExportFile) {
+    setLatestExportFile(null)
+    setPreparedSharePeriodKey('')
+  }, [activeEmployeeId, periodKey])
+
+  useEffect(() => {
+    if (!isFortnightComplete || preparedSharePeriodKey === periodKey) {
       return
     }
 
@@ -281,6 +286,7 @@ export function WeekPage({
       const { generateTimesheetPdf } = await import('../utils/pdfExport')
 
       const file = latestExportFile
+        && preparedSharePeriodKey === periodKey
         ? latestExportFile
         : (
             await generateTimesheetPdf({

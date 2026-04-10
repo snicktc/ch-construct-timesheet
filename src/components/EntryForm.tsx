@@ -1,4 +1,4 @@
-import { liveQuery } from 'dexie'
+import Dexie, { liveQuery } from 'dexie'
 import { useEffect, useMemo, useState } from 'react'
 
 import {
@@ -30,6 +30,7 @@ const DRIVER_OPTIONS: DriverStatus[] = ['Ja', 'Nee', 'Ochtend']
 const DEFAULT_START_TIME_CHIPS = ['06:00', '06:30', '07:00', '07:30']
 const DEFAULT_END_TIME_CHIPS = ['15:30', '16:00', '16:30', '17:00']
 const BREAK_OPTIONS = [0, 15, 30, 45, 60]
+const HISTORICAL_TIME_SAMPLE_SIZE = 120
 
 const buildTimeChips = (historicalTimes: string[], fallbackTimes: string[], selectedTime: string) => {
   const uniqueTimes = [...new Set([...historicalTimes, ...fallbackTimes])]
@@ -95,8 +96,19 @@ export function EntryForm({
   }, [clientId, clients, existingEntry])
 
   useEffect(() => {
+    if (!employee.id) {
+      setHistoricalStartTimes([])
+      setHistoricalEndTimes([])
+      return
+    }
+
     const subscription = liveQuery(async () => {
-      const allEntries = await db.timeEntries.where('employeeId').equals(employee.id ?? -1).toArray()
+      const allEntries = await db.timeEntries
+        .where('[employeeId+date]')
+        .between([employee.id, Dexie.minKey], [employee.id, Dexie.maxKey], true, true)
+        .reverse()
+        .limit(HISTORICAL_TIME_SAMPLE_SIZE)
+        .toArray()
       const startFrequency = new Map<string, number>()
       const endFrequency = new Map<string, number>()
 

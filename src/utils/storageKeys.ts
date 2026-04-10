@@ -1,4 +1,3 @@
-export const APP_NAME = 'timesheet'
 export const LEGACY_APP_NAME = 'ch-timesheet'
 
 export const ACTIVE_PROFILE_STORAGE_KEY = 'timesheet.activeEmployeeId'

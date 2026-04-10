@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { Client } from '../db/database'
 
@@ -11,6 +11,12 @@ type ClientSelectProps = {
 
 export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSelectProps) {
   const [query, setQuery] = useState(() => clients.find((client) => client.id === value)?.name ?? '')
+
+  const selectedClientName = clients.find((client) => client.id === value)?.name ?? ''
+
+  useEffect(() => {
+    setQuery(selectedClientName)
+  }, [selectedClientName])
 
   const filteredClients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

@@ -702,7 +702,6 @@ timesheet/
 ├── index.html
 ├── package.json
 ├── vite.config.ts
-├── tailwind.config.js
 ├── tsconfig.json
 ├── public/
 │   ├── icon-192.png
@@ -716,7 +715,7 @@ timesheet/
     ├── db/
     │   └── database.ts          # Dexie database definitie & schema
     ├── components/
-    │   ├── Layout.tsx            # Shell met bottom tabs
+    │   ├── BottomNav.tsx         # Bottom tabs navigatie
     │   ├── BottomNav.tsx         # Tab bar
     │   ├── ProfileSwitcher.tsx   # Segmented control / scrollbare chips in header
     │   ├── ProfileModal.tsx      # Modal voor profiel toevoegen/bewerken
@@ -724,7 +723,7 @@ timesheet/
     │   ├── RepeatCard.tsx        # "Zelfde als gisteren" kaart
     │   ├── EntryCard.tsx         # Compact blok-kaart (klant, tijden, subtotaal)
     │   ├── EntryForm.tsx         # Invoerformulier voor één blok (nieuw of bewerk)
-    │   ├── TimeChips.tsx         # Snelkeuze-chips voor start/eindtijd
+    │   ├── EntryForm.tsx         # Formulier met tijdchips en meer opties
     │   ├── WeekDots.tsx          # Weekvoortgang-bolletjes
     │   ├── ClientSelect.tsx      # Dropdown met autocomplete + "nieuw" optie
     │   │                          # Sortering: meest recent gebruikt bovenaan
