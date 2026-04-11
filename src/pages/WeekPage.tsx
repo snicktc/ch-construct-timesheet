@@ -214,7 +214,7 @@ export function WeekPage({
                 </div>
 
                 {dateEntries.length === 0 ? (
-                  <p className="muted-text">{isWeekend(date) ? 'Weekend' : 'Nog niet geregistreerd'}</p>
+                  <p className="muted-text">{isWeekend(date) ? 'Weekend' : 'Nog niet geregistreerd · tik om toe te voegen'}</p>
                 ) : (
                   <div className="week-day-entries">
                     {dateEntries.map((entry, index) => (
@@ -228,6 +228,7 @@ export function WeekPage({
                         {entry.notes ? <em className="week-entry-notes">{entry.notes}</em> : null}
                       </div>
                     ))}
+                    <p className="muted-text">Tik om te bekijken of een blok toe te voegen</p>
                   </div>
                 )}
               </button>

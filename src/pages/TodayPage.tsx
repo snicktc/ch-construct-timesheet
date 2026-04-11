@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { EntryForm } from '../components/EntryForm'
 import { EntryCard } from '../components/EntryCard'
@@ -30,6 +30,7 @@ type TodayPageProps = {
   initialDate?: Date
   onDateConsumed?: () => void
   highlightRepeatCard?: boolean
+  openedFromWeek?: boolean
 }
 
 export function TodayPage({
@@ -40,6 +41,7 @@ export function TodayPage({
   initialDate,
   onDateConsumed,
   highlightRepeatCard = false,
+  openedFromWeek = false,
 }: TodayPageProps) {
   const [selectedDate, setSelectedDate] = useState(() => initialDate ?? new Date())
   const [feedbackMessage, setFeedbackMessage] = useState('')
@@ -48,6 +50,7 @@ export function TodayPage({
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const daySectionRef = useRef<HTMLElement | null>(null)
 
   const selectedDateKey = formatDateKey(selectedDate)
   const todayDateKey = formatDateKey(new Date())
@@ -80,8 +83,16 @@ export function TodayPage({
     }
 
     setSelectedDate(initialDate)
-    onDateConsumed?.()
   }, [initialDate, onDateConsumed])
+
+  useEffect(() => {
+    if (!openedFromWeek) {
+      return
+    }
+
+    daySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    onDateConsumed?.()
+  }, [openedFromWeek, onDateConsumed, selectedDateKey])
 
   useEffect(() => {
     setFeedbackMessage('')
@@ -213,6 +224,7 @@ export function TodayPage({
             <p>
               {formatLongDate(selectedDate)} · {activeEmployee.exportRecipient}
             </p>
+            {openedFromWeek ? <span className="context-chip">Gekozen vanuit weekoverzicht</span> : null}
           </div>
 
           <div className="date-nav" aria-label="Datum navigatie">
@@ -240,7 +252,8 @@ export function TodayPage({
       ) : null}
 
       {shouldShowInlineEmptyForm ? (
-        <section className="panel">
+        <section className={`panel${openedFromWeek ? ' is-highlighted-panel' : ''}`} ref={daySectionRef}>
+          {openedFromWeek ? <p className="context-note">Voeg hieronder meteen blokken toe voor deze dag.</p> : null}
           <EntryForm
             employee={activeEmployee}
             clients={clients}
@@ -279,7 +292,7 @@ export function TodayPage({
         />
       </Sheet>
 
-      <section className="panel">
+      <section className={`panel${openedFromWeek && !shouldShowInlineEmptyForm ? ' is-highlighted-panel' : ''}`} ref={!shouldShowInlineEmptyForm ? daySectionRef : undefined}>
         <div className="section-heading">
           <h2>Registraties vandaag</h2>
           <span className="muted-text">{selectedDateKey}</span>
@@ -314,7 +327,7 @@ export function TodayPage({
             setIsFormOpen(true)
           }}
         >
-          + Nog een blok toevoegen
+          + Blok toevoegen voor deze dag
         </button>
 
         <div className="day-total-card">

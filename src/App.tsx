@@ -22,6 +22,7 @@ function App() {
   const [selectedDayFromWeek, setSelectedDayFromWeek] = useState<Date | null>(null)
   const [highlightRepeatCard, setHighlightRepeatCard] = useState(false)
   const [highlightExportPrompt, setHighlightExportPrompt] = useState(false)
+  const [openedFromWeek, setOpenedFromWeek] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -161,8 +162,12 @@ function App() {
                 activeProfiles={activeProfiles}
                 onSelectEmployee={setActiveEmployeeId}
                 initialDate={selectedDayFromWeek ?? undefined}
-                onDateConsumed={() => setSelectedDayFromWeek(null)}
+                onDateConsumed={() => {
+                  setSelectedDayFromWeek(null)
+                  setOpenedFromWeek(false)
+                }}
                 highlightRepeatCard={highlightRepeatCard}
+                openedFromWeek={openedFromWeek}
               />
             ) : activeTab === 'week' && activeEmployee && activeEmployeeId ? (
               <WeekPage
@@ -172,6 +177,7 @@ function App() {
                 onSelectEmployee={setActiveEmployeeId}
                 onOpenDay={(date) => {
                   setSelectedDayFromWeek(date)
+                  setOpenedFromWeek(true)
                   setActiveTab('today')
                 }}
                 highlightExportPrompt={highlightExportPrompt}

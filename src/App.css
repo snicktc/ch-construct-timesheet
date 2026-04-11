@@ -78,6 +78,10 @@
   margin-top: 16px;
 }
 
+.is-highlighted-panel {
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12), 0 10px 30px rgba(30, 58, 95, 0.08);
+}
+
 .today-page {
   display: grid;
   gap: 16px;
@@ -107,6 +111,24 @@
 .today-header-meta p {
   color: rgba(255, 255, 255, 0.8);
   margin-top: 4px;
+}
+
+.context-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin-top: 10px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 13px;
+}
+
+.context-note {
+  margin-bottom: 12px;
+  color: #1e3a5f;
+  font-size: 14px;
 }
 
 .panel h2,
