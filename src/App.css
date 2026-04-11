@@ -239,6 +239,10 @@
   flex-wrap: wrap;
 }
 
+.top-gap {
+  margin-top: 12px;
+}
+
 .primary-button,
 .secondary-button {
   min-height: 48px;

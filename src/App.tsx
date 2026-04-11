@@ -70,6 +70,7 @@ function App() {
   }
 
   const showWelcome = !loading && profiles.length === 0
+  const showMissingActiveProfile = !loading && profiles.length > 0 && (!activeEmployee || !activeEmployeeId)
 
   return (
     <main className="app-shell">
@@ -116,7 +117,42 @@ function App() {
           </>
         ) : null}
 
-        {!showWelcome && activeEmployee && activeEmployeeId ? (
+        {showMissingActiveProfile ? (
+          <>
+            <header className="app-header">
+              <h1>timesheet</h1>
+              <p>Er is profieldata gevonden, maar er kon geen actief profiel geladen worden.</p>
+            </header>
+
+            <section className="panel">
+              <h2>Profiel herstellen</h2>
+              <p className="muted-text">
+                Kies een profiel om verder te gaan of open `Meer` om je profielen te beheren.
+              </p>
+
+              <div className="profile-list" role="tablist" aria-label="Beschikbare profielen">
+                {activeProfiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    className="profile-chip"
+                    onClick={() => profile.id && setActiveEmployeeId(profile.id)}
+                  >
+                    {profile.name} · {profile.exportRecipient}
+                  </button>
+                ))}
+              </div>
+
+              <div className="button-row top-gap">
+                <button type="button" className="secondary-button" onClick={() => setActiveTab('settings')}>
+                  Open Meer
+                </button>
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        {!showWelcome && !showMissingActiveProfile && activeEmployee && activeEmployeeId ? (
           <>
             {activeTab === 'today' ? (
               <TodayPage

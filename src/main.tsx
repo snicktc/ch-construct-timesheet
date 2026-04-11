@@ -5,18 +5,26 @@ import './index.css'
 import App from './App.tsx'
 import { migrateLegacyTimesheetData } from './utils/migration'
 
-async function bootstrap() {
-  await migrateLegacyTimesheetData()
-
-  registerSW({
-    immediate: true,
-  })
-
+function renderApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />
     </StrictMode>,
   )
+}
+
+async function bootstrap() {
+  try {
+    await migrateLegacyTimesheetData()
+  } catch (error) {
+    console.error('Legacy data migration failed during bootstrap', error)
+  }
+
+  registerSW({
+    immediate: true,
+  })
+
+  renderApp()
 }
 
 void bootstrap()
