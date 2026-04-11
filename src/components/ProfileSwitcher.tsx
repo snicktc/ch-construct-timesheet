@@ -23,7 +23,10 @@ export function ProfileSwitcher({ profiles, activeEmployeeId, onSelect }: Profil
           type="button"
           className={`profile-chip${profile.id === activeEmployeeId ? ' is-active' : ''}`}
           onClick={() => profile.id && onSelect(profile.id)}
+          role="tab"
+          aria-selected={profile.id === activeEmployeeId}
         >
+          {profile.id === activeEmployeeId ? <span className="profile-chip-check">✓</span> : null}
           <span>{profile.name}</span>
           <span className="profile-chip-badge">{getRecipientBadge(profile.exportRecipient)}</span>
         </button>

@@ -146,7 +146,7 @@
 
 .profile-chip {
   border: 1px solid #d6d8dd;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 999px;
   min-height: 48px;
   padding: 0 14px;
@@ -159,9 +159,11 @@
 }
 
 .profile-chip.is-active {
-  background: #1e3a5f;
-  color: #ffffff;
-  border-color: #1e3a5f;
+  background: #ffffff;
+  color: #0f2947;
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35), 0 10px 24px rgba(15, 41, 71, 0.18);
+  font-weight: 700;
 }
 
 .profile-chip-badge {
@@ -177,7 +179,20 @@
 }
 
 .profile-chip.is-active .profile-chip-badge {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(30, 58, 95, 0.12);
+}
+
+.profile-chip-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: #1e3a5f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .profile-grid {
