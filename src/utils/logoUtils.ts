@@ -1,9 +1,11 @@
 const MAX_LOGO_WIDTH = 400
 
 const DEFAULT_LOGO_BY_RECIPIENT: Record<string, string> = {
-  'ch construct': '/logos/logo_CH-Construct.jpg',
-  vbw: '/logos/logo_VBW.png',
+  'ch construct': 'logos/logo_CH-Construct.jpg',
+  vbw: 'logos/logo_VBW.png',
 }
+
+const baseUrl = import.meta.env.BASE_URL
 
 const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -56,7 +58,7 @@ export async function getDefaultLogoForRecipient(exportRecipient: string) {
     return ''
   }
 
-  const response = await fetch(logoPath)
+  const response = await fetch(`${baseUrl}${logoPath}`)
 
   if (!response.ok) {
     throw new Error('Standaardlogo laden mislukt.')

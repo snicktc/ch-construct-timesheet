@@ -31,7 +31,8 @@ registerRoute(
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const targetUrl = typeof event.notification.data?.url === 'string' ? event.notification.data.url : '/'
+  const targetUrl =
+    typeof event.notification.data?.url === 'string' ? event.notification.data.url : self.registration.scope
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

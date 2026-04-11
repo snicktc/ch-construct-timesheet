@@ -6,6 +6,8 @@ import {
 } from './storageKeys'
 import { formatDateKey, getFortnightDates, getStartOfWeek } from './weekHelpers'
 
+const baseUrl = import.meta.env.BASE_URL
+
 export type NotificationSettings = {
   dailyReminderEnabled: boolean
   dailyReminderTime: string
@@ -81,9 +83,9 @@ export const showAppNotification = async (title: string, options: NotificationOp
 
   const registration = await navigator.serviceWorker.ready
   await registration.showNotification(title, {
-    badge: '/icon-192.png',
-    icon: '/icon-192.png',
-    data: { url: '/?tab=today' },
+    badge: `${baseUrl}icon-192.png`,
+    icon: `${baseUrl}icon-192.png`,
+    data: { url: `${baseUrl}?tab=today` },
     ...options,
   })
 }
@@ -162,7 +164,7 @@ export const runNotificationChecks = async (activeEmployeeId: number | null) => 
     await showAppNotification('Werkdag loggen?', {
       body: 'Open timesheet en registreer je werkdag.',
       tag: 'daily-reminder',
-      data: { url: '/?tab=today&repeatReady=1' },
+      data: { url: `${baseUrl}?tab=today&repeatReady=1` },
     })
     window.localStorage.setItem(LAST_DAILY_NOTIFICATION_KEY, todayKey)
   }
@@ -172,7 +174,7 @@ export const runNotificationChecks = async (activeEmployeeId: number | null) => 
     await showAppNotification('2 weken compleet? Exporteer en verstuur.', {
       body: 'Je 2-wekelijks overzicht staat klaar om te exporteren.',
       tag: 'friday-export-prompt',
-      data: { url: '/?tab=week&exportPrompt=1' },
+      data: { url: `${baseUrl}?tab=week&exportPrompt=1` },
     })
     window.localStorage.setItem(
       LAST_EXPORT_NOTIFICATION_KEY,
