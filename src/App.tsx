@@ -156,7 +156,6 @@ function App() {
           <>
             {activeTab === 'today' && activeEmployee && activeEmployeeId ? (
               <TodayPage
-                key={selectedDayFromWeek ? selectedDayFromWeek.toISOString() : 'today-page'}
                 activeEmployee={activeEmployee}
                 activeEmployeeId={activeEmployeeId}
                 activeProfiles={activeProfiles}
