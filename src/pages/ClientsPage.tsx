@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
@@ -34,6 +35,7 @@ export function ClientsPage({
   const [successMessage, setSuccessMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [clientPendingDelete, setClientPendingDelete] = useState<Client | null>(null)
 
   useEffect(() => {
     if (!errorMessage && !successMessage) {
@@ -106,12 +108,6 @@ export function ClientsPage({
       return
     }
 
-    const confirmed = window.confirm(`Verwijder klant "${client.name}"?`)
-
-    if (!confirmed) {
-      return
-    }
-
     try {
       await deleteClient(client.id)
 
@@ -131,6 +127,24 @@ export function ClientsPage({
     <section className="today-page">
       {successMessage ? <Toast message={successMessage} tone="success" /> : null}
       {errorMessage ? <Toast message={errorMessage} tone="error" /> : null}
+
+      <ConfirmDialog
+        open={Boolean(clientPendingDelete)}
+        title="Klant verwijderen"
+        message={clientPendingDelete ? `Weet je zeker dat je klant ${clientPendingDelete.name} wilt verwijderen?` : ''}
+        confirmLabel="Ja, verwijder"
+        cancelLabel="Nee, bewaren"
+        tone="danger"
+        onCancel={() => setClientPendingDelete(null)}
+        onConfirm={() => {
+          const client = clientPendingDelete
+          setClientPendingDelete(null)
+
+          if (client) {
+            void handleDelete(client)
+          }
+        }}
+      />
 
       <header className="today-header">
         <ProfileSwitcher
@@ -218,7 +232,7 @@ export function ClientsPage({
                 <button type="button" className="secondary-button" onClick={() => startEdit(client)}>
                   ✎ Bewerk
                 </button>
-                <button type="button" className="danger-button" onClick={() => void handleDelete(client)}>
+                <button type="button" className="danger-button" onClick={() => setClientPendingDelete(client)}>
                   Verwijder
                 </button>
               </div>

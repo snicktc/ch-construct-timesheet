@@ -64,6 +64,16 @@
   margin: 0 auto 12px;
 }
 
+.confirm-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.confirm-dialog h2,
+.confirm-dialog p {
+  margin: 0;
+}
+
 .panel + .panel {
   margin-top: 16px;
 }

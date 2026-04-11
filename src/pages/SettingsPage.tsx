@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
@@ -63,6 +64,9 @@ export function SettingsPage({
   const [isSaving, setIsSaving] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [profilePendingDelete, setProfilePendingDelete] = useState<Employee | null>(null)
+  const [pendingImportText, setPendingImportText] = useState<string | null>(null)
+  const [confirmClearAllData, setConfirmClearAllData] = useState(false)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() =>
     getNotificationSettings(),
   )
@@ -172,12 +176,6 @@ export function SettingsPage({
       return
     }
 
-    const confirmed = window.confirm(`Verwijder profiel "${profile.name}"?`)
-
-    if (!confirmed) {
-      return
-    }
-
     try {
       await deleteProfile(profile.id)
 
@@ -210,21 +208,10 @@ export function SettingsPage({
       return
     }
 
-    const confirmed = window.confirm(
-      'Importeren vervangt alle huidige data in de app. Wil je doorgaan?',
-    )
-
-    if (!confirmed) {
-      event.target.value = ''
-      return
-    }
-
     try {
       setErrorMessage('')
       const text = await file.text()
-      await importAllDataFromText(text)
-      setSuccessMessage('Data geïmporteerd. De app wordt herladen.')
-      window.setTimeout(() => window.location.reload(), 600)
+      setPendingImportText(text)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Data import mislukt.')
     } finally {
@@ -233,14 +220,6 @@ export function SettingsPage({
   }
 
   const handleClearAllData = async () => {
-    const confirmed = window.confirm(
-      'Dit wist alle profielen, klanten, registraties en exporthistoriek. Doorgaan?',
-    )
-
-    if (!confirmed) {
-      return
-    }
-
     try {
       setErrorMessage('')
       await clearAllAppData()
@@ -308,6 +287,66 @@ export function SettingsPage({
     <section className="today-page">
       {successMessage ? <Toast message={successMessage} tone="success" /> : null}
       {errorMessage ? <Toast message={errorMessage} tone="error" /> : null}
+
+      <ConfirmDialog
+        open={Boolean(profilePendingDelete)}
+        title="Profiel verwijderen"
+        message={profilePendingDelete ? `Weet je zeker dat je profiel ${profilePendingDelete.name} wilt verwijderen?` : ''}
+        confirmLabel="Ja, verwijder"
+        cancelLabel="Nee, bewaren"
+        tone="danger"
+        onCancel={() => setProfilePendingDelete(null)}
+        onConfirm={() => {
+          const profile = profilePendingDelete
+          setProfilePendingDelete(null)
+
+          if (profile) {
+            void handleDelete(profile)
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={pendingImportText !== null}
+        title="Data importeren"
+        message="Deze backup vervangt alle huidige gegevens in de app op dit toestel. Wil je verdergaan?"
+        confirmLabel="Ja, importeer"
+        cancelLabel="Nee, annuleren"
+        tone="danger"
+        onCancel={() => setPendingImportText(null)}
+        onConfirm={() => {
+          const text = pendingImportText
+          setPendingImportText(null)
+
+          if (!text) {
+            return
+          }
+
+          void (async () => {
+            try {
+              await importAllDataFromText(text)
+              setSuccessMessage('Data geïmporteerd. De app wordt herladen.')
+              window.setTimeout(() => window.location.reload(), 600)
+            } catch (error) {
+              setErrorMessage(error instanceof Error ? error.message : 'Data import mislukt.')
+            }
+          })()
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmClearAllData}
+        title="Alle data wissen"
+        message="Dit wist alle profielen, klanten, registraties en exporthistoriek op dit toestel. Wil je doorgaan?"
+        confirmLabel="Ja, wis alles"
+        cancelLabel="Nee, annuleren"
+        tone="danger"
+        onCancel={() => setConfirmClearAllData(false)}
+        onConfirm={() => {
+          setConfirmClearAllData(false)
+          void handleClearAllData()
+        }}
+      />
 
       <header className="today-header">
         <ProfileSwitcher
@@ -505,7 +544,7 @@ export function SettingsPage({
                 >
                   {profile.isActive ? 'Inactief' : 'Actief'}
                 </button>
-                <button type="button" className="danger-button" onClick={() => void handleDelete(profile)}>
+                <button type="button" className="danger-button" onClick={() => setProfilePendingDelete(profile)}>
                   Verwijder
                 </button>
               </div>
@@ -638,7 +677,7 @@ export function SettingsPage({
           >
             Importeer data
           </button>
-          <button type="button" className="danger-button" onClick={() => void handleClearAllData()}>
+          <button type="button" className="danger-button" onClick={() => setConfirmClearAllData(true)}>
             Wis alle data
           </button>
         </div>

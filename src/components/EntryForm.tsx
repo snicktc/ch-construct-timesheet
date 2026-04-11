@@ -12,6 +12,7 @@ import {
 } from '../db/database'
 import { db } from '../db/database'
 import type { SaveTimeEntryInput } from '../hooks/useTimeEntry'
+import { ConfirmDialog } from './ConfirmDialog'
 import { ClientSelect } from './ClientSelect'
 
 type EntryFormProps = {
@@ -84,6 +85,21 @@ export function EntryForm({
   const [showMoreOptions, setShowMoreOptions] = useState(
     Boolean(existingEntry?.travelCreditMinutes || existingEntry?.notes),
   )
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [confirmOverlapOpen, setConfirmOverlapOpen] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState<SaveTimeEntryInput | null>(null)
+
+  const submitEntry = async (payload: SaveTimeEntryInput) => {
+    try {
+      setIsSaving(true)
+      setErrorMessage('')
+      await onSubmit(payload)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Opslaan mislukt.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (!clientId) {
@@ -196,19 +212,7 @@ export function EntryForm({
     })
 
     if (overlappingEntries.length > 0) {
-      const confirmed = window.confirm(
-        'Deze uren overlappen met een bestaand blok op dezelfde dag. Wil je toch doorgaan?',
-      )
-
-      if (!confirmed) {
-        return
-      }
-    }
-
-    try {
-      setIsSaving(true)
-      setErrorMessage('')
-      await onSubmit({
+      setPendingSubmit({
         employeeId: employee.id!,
         date: existingEntry?.date ?? '',
         clientId,
@@ -220,21 +224,26 @@ export function EntryForm({
         isDriver,
         notes,
       })
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Opslaan mislukt.')
-    } finally {
-      setIsSaving(false)
+      setConfirmOverlapOpen(true)
+      return
     }
+
+    await submitEntry({
+      employeeId: employee.id!,
+      date: existingEntry?.date ?? '',
+      clientId,
+      location,
+      startTime,
+      endTime,
+      breakMinutes,
+      travelCreditMinutes,
+      isDriver,
+      notes,
+    })
   }
 
   const handleDelete = async () => {
     if (!onDelete) {
-      return
-    }
-
-    const confirmed = window.confirm('Verwijder dit blok?')
-
-    if (!confirmed) {
       return
     }
 
@@ -250,6 +259,41 @@ export function EntryForm({
 
   return (
     <section className="entry-form-panel">
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Blok verwijderen"
+        message="Weet je zeker dat je dit tijdsblok wilt verwijderen?"
+        confirmLabel="Ja, verwijder"
+        cancelLabel="Nee, bewaren"
+        tone="danger"
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false)
+          void handleDelete()
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmOverlapOpen}
+        title="Uren overlappen"
+        message="Deze uren overlappen met een bestaand blok op dezelfde dag. Wil je dit blok toch opslaan?"
+        confirmLabel="Ja, toch opslaan"
+        cancelLabel="Nee, aanpassen"
+        onCancel={() => {
+          setConfirmOverlapOpen(false)
+          setPendingSubmit(null)
+        }}
+        onConfirm={() => {
+          const payload = pendingSubmit
+          setConfirmOverlapOpen(false)
+          setPendingSubmit(null)
+
+          if (payload) {
+            void submitEntry(payload)
+          }
+        }}
+      />
+
       <div className="section-heading">
         <h2>{existingEntry ? 'Blok bewerken' : 'Blok toevoegen'}</h2>
         <button type="button" className="secondary-button" onClick={onCancel}>
@@ -435,7 +479,7 @@ export function EntryForm({
             Annuleer
           </button>
           {onDelete ? (
-            <button type="button" className="danger-button" onClick={() => void handleDelete()} disabled={isSaving || isDeleting}>
+            <button type="button" className="danger-button" onClick={() => setConfirmDeleteOpen(true)} disabled={isSaving || isDeleting}>
               {isDeleting ? 'Verwijderen...' : 'Verwijder blok'}
             </button>
           ) : null}
