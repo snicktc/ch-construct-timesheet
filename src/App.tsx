@@ -117,7 +117,7 @@ function App() {
           </>
         ) : null}
 
-        {showMissingActiveProfile ? (
+        {showMissingActiveProfile && activeTab !== 'settings' ? (
           <>
             <header className="app-header">
               <h1>timesheet</h1>
@@ -131,7 +131,7 @@ function App() {
               </p>
 
               <div className="profile-list" role="tablist" aria-label="Beschikbare profielen">
-                {activeProfiles.map((profile) => (
+                {profiles.map((profile) => (
                   <button
                     key={profile.id}
                     type="button"
@@ -152,9 +152,9 @@ function App() {
           </>
         ) : null}
 
-        {!showWelcome && !showMissingActiveProfile && activeEmployee && activeEmployeeId ? (
+        {!showWelcome && (activeTab === 'settings' || (!showMissingActiveProfile && activeEmployee && activeEmployeeId)) ? (
           <>
-            {activeTab === 'today' ? (
+            {activeTab === 'today' && activeEmployee && activeEmployeeId ? (
               <TodayPage
                 key={selectedDayFromWeek ? selectedDayFromWeek.toISOString() : 'today-page'}
                 activeEmployee={activeEmployee}
@@ -165,7 +165,7 @@ function App() {
                 onDateConsumed={() => setSelectedDayFromWeek(null)}
                 highlightRepeatCard={highlightRepeatCard}
               />
-            ) : activeTab === 'week' ? (
+            ) : activeTab === 'week' && activeEmployee && activeEmployeeId ? (
               <WeekPage
                 activeEmployee={activeEmployee}
                 activeEmployeeId={activeEmployeeId}
@@ -177,7 +177,7 @@ function App() {
                 }}
                 highlightExportPrompt={highlightExportPrompt}
               />
-            ) : activeTab === 'clients' ? (
+            ) : activeTab === 'clients' && activeEmployeeId ? (
               <ClientsPage
                 activeEmployeeId={activeEmployeeId}
                 activeProfiles={activeProfiles}
@@ -185,7 +185,7 @@ function App() {
               />
             ) : (
               <SettingsPage
-                activeEmployeeId={activeEmployeeId}
+                activeEmployeeId={activeEmployeeId ?? profiles[0]?.id ?? 0}
                 activeProfiles={activeProfiles}
                 onSelectEmployee={setActiveEmployeeId}
               />

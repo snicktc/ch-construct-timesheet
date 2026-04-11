@@ -34,9 +34,10 @@ export function useActiveProfile() {
   )
 
   useEffect(() => {
-    const subscription = liveQuery(() =>
-      db.employees.where('isActive').equals(1).sortBy('sortOrder'),
-    ).subscribe({
+    const subscription = liveQuery(async () => {
+      const employees = await db.employees.orderBy('sortOrder').toArray()
+      return employees.filter((employee) => employee.isActive)
+    }).subscribe({
       next: (nextProfiles) => {
         setProfilesState({ profiles: nextProfiles, loading: false })
       },
