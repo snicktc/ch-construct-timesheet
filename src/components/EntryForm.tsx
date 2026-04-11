@@ -17,6 +17,7 @@ import { ClientSelect } from './ClientSelect'
 type EntryFormProps = {
   employee: Employee
   clients: Client[]
+  dayEntries: TimeEntry[]
   existingEntry?: TimeEntry
   suggestedStartTime?: string
   defaultBreakMinutes?: number
@@ -26,7 +27,7 @@ type EntryFormProps = {
   onCancel: () => void
 }
 
-const DRIVER_OPTIONS: DriverStatus[] = ['Ja', 'Nee', 'Ochtend']
+const DRIVER_OPTIONS: DriverStatus[] = ['Ja', 'Nee']
 const DEFAULT_START_TIME_CHIPS = ['06:00', '06:30', '07:00', '07:30']
 const DEFAULT_END_TIME_CHIPS = ['15:30', '16:00', '16:30', '17:00']
 const BREAK_OPTIONS = [0, 15, 30, 45, 60]
@@ -46,6 +47,7 @@ const buildTimeChips = (historicalTimes: string[], fallbackTimes: string[], sele
 export function EntryForm({
   employee,
   clients,
+  dayEntries,
   existingEntry,
   suggestedStartTime,
   defaultBreakMinutes,
@@ -183,6 +185,24 @@ export function EntryForm({
     if (!startTime || !endTime || endTime <= startTime) {
       setErrorMessage('Eindtijd moet later zijn dan starttijd.')
       return
+    }
+
+    const overlappingEntries = dayEntries.filter((entry) => {
+      if (existingEntry?.id && entry.id === existingEntry.id) {
+        return false
+      }
+
+      return startTime < entry.endTime && endTime > entry.startTime
+    })
+
+    if (overlappingEntries.length > 0) {
+      const confirmed = window.confirm(
+        'Deze uren overlappen met een bestaand blok op dezelfde dag. Wil je toch doorgaan?',
+      )
+
+      if (!confirmed) {
+        return
+      }
     }
 
     try {
@@ -357,7 +377,7 @@ export function EntryForm({
         <div className="field">
           <label>Chauffeur</label>
           <div className="toggle-row">
-            {DRIVER_OPTIONS.slice(0, 2).map((option) => (
+            {DRIVER_OPTIONS.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -367,13 +387,6 @@ export function EntryForm({
                 {option}
               </button>
             ))}
-            <button
-              type="button"
-              className={`toggle-button toggle-button-subtle${isDriver === 'Ochtend' ? ' is-active' : ''}`}
-              onClick={() => setIsDriver('Ochtend')}
-            >
-              Ochtend
-            </button>
           </div>
         </div>
 
@@ -417,6 +430,9 @@ export function EntryForm({
         <div className="button-row">
           <button type="submit" className="primary-button" disabled={isSaving || isDeleting}>
             {isSaving ? 'Opslaan...' : 'Opslaan'}
+          </button>
+          <button type="button" className="secondary-button" onClick={onCancel} disabled={isSaving || isDeleting}>
+            Annuleer
           </button>
           {onDelete ? (
             <button type="button" className="danger-button" onClick={() => void handleDelete()} disabled={isSaving || isDeleting}>

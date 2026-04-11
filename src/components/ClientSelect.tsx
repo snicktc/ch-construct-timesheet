@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { Client } from '../db/database'
 
@@ -11,12 +11,9 @@ type ClientSelectProps = {
 
 export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSelectProps) {
   const [query, setQuery] = useState(() => clients.find((client) => client.id === value)?.name ?? '')
+  const [isEditing, setIsEditing] = useState(false)
 
   const selectedClientName = clients.find((client) => client.id === value)?.name ?? ''
-
-  useEffect(() => {
-    setQuery(selectedClientName)
-  }, [selectedClientName])
 
   const filteredClients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -43,10 +40,17 @@ export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSe
       <input
         className="select-input"
         list="client-options"
-        value={query}
+        value={isEditing ? query : selectedClientName}
         placeholder="Zoek klant"
+        onFocus={() => {
+          setIsEditing(true)
+          setQuery('')
+        }}
         onChange={(event) => setQuery(event.target.value)}
-        onBlur={resolveClientByQuery}
+        onBlur={() => {
+          resolveClientByQuery()
+          setIsEditing(false)
+        }}
       />
       <datalist id="client-options">
         {clients.map((client) => (
@@ -61,6 +65,7 @@ export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSe
             className={`autocomplete-item${client.id === value ? ' is-active' : ''}`}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
+              setIsEditing(false)
               setQuery(client.name)
               if (client.id) {
                 onChange(client.id)

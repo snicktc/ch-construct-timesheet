@@ -8,7 +8,7 @@ import { RepeatCard } from '../components/RepeatCard'
 import { Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import { WeekDots } from '../components/WeekDots'
-import { db, type Employee, type TimeEntry } from '../db/database'
+import { db, type DriverStatus, type Employee, type TimeEntry } from '../db/database'
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
 import { useClients } from '../hooks/useClients'
 import { useTimeEntry } from '../hooks/useTimeEntry'
@@ -157,7 +157,7 @@ export function TodayPage({
     endTime: string
     breakMinutes?: number
     travelCreditMinutes?: number
-    isDriver?: 'Ja' | 'Nee' | 'Ochtend'
+    isDriver?: DriverStatus
     notes?: string
   }) => {
     await createEntry({ ...input, date: selectedDateKey })
@@ -174,7 +174,7 @@ export function TodayPage({
     endTime: string
     breakMinutes?: number
     travelCreditMinutes?: number
-    isDriver?: 'Ja' | 'Nee' | 'Ochtend'
+    isDriver?: DriverStatus
     notes?: string
   }) => {
     if (!editingEntry?.id) {
@@ -244,6 +244,7 @@ export function TodayPage({
           <EntryForm
             employee={activeEmployee}
             clients={clients}
+            dayEntries={entries}
             suggestedStartTime={suggestedStartTime}
             defaultBreakMinutes={defaultBreakMinutes}
             onSubmit={handleCreateEntry}
@@ -264,6 +265,7 @@ export function TodayPage({
         <EntryForm
           employee={activeEmployee}
           clients={clients}
+          dayEntries={entries}
           existingEntry={editingEntry ?? undefined}
           suggestedStartTime={suggestedStartTime}
           defaultBreakMinutes={defaultBreakMinutes}

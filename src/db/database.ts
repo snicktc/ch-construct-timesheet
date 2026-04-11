@@ -3,10 +3,10 @@ import Dexie, { type EntityTable } from 'dexie'
 export const DEFAULT_BREAK_MINUTES = 45
 export const DEFAULT_TRAVEL_CREDIT_MINUTES = 0
 export const DEFAULT_START_TIME = '06:30'
-export const DEFAULT_DRIVER_STATUS = 'Nee'
+export const DEFAULT_DRIVER_STATUS = 'Ja'
 export const MAX_TIME_ENTRY_NOTES_LENGTH = 160
 
-export const DRIVER_STATUSES = ['Ja', 'Nee', 'Ochtend'] as const
+export const DRIVER_STATUSES = ['Ja', 'Nee'] as const
 
 export type DriverStatus = (typeof DRIVER_STATUSES)[number]
 
@@ -137,6 +137,10 @@ const normalizeString = (value: string) => value.trim()
 const normalizeTimeEntryNotes = (notes: string) => normalizeString(notes).slice(0, MAX_TIME_ENTRY_NOTES_LENGTH)
 
 const normalizeDriverStatus = (value: string | undefined): DriverStatus => {
+  if (value === 'Ochtend') {
+    return 'Ja'
+  }
+
   if (value && DRIVER_STATUSES.includes(value as DriverStatus)) {
     return value as DriverStatus
   }
