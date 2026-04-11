@@ -70,6 +70,9 @@ export function EntryForm({
     existingEntry?.breakMinutes ?? defaultBreakMinutes ?? employee.defaultBreakMinutes ?? DEFAULT_BREAK_MINUTES,
   )
   const [travelCreditMinutes, setTravelCreditMinutes] = useState(existingEntry?.travelCreditMinutes ?? 0)
+  const [travelCreditInput, setTravelCreditInput] = useState(
+    String(existingEntry?.travelCreditMinutes ?? 0),
+  )
   const [isDriver, setIsDriver] = useState<DriverStatus>(existingEntry?.isDriver ?? DEFAULT_DRIVER_STATUS)
   const [notes, setNotes] = useState(existingEntry?.notes ?? '')
   const [newClientName, setNewClientName] = useState('')
@@ -451,9 +454,30 @@ export function EntryForm({
               <input
                 type="number"
                 min="0"
-                step="5"
-                value={travelCreditMinutes}
-                onChange={(event) => setTravelCreditMinutes(Number(event.target.value) || 0)}
+                step="1"
+                inputMode="numeric"
+                value={travelCreditInput}
+                onFocus={() => {
+                  if (travelCreditInput === '0') {
+                    setTravelCreditInput('')
+                  }
+                }}
+                onChange={(event) => {
+                  const nextValue = event.target.value.replace(/[^0-9]/g, '')
+                  setTravelCreditInput(nextValue)
+                  setTravelCreditMinutes(nextValue === '' ? 0 : Number(nextValue))
+                }}
+                onBlur={() => {
+                  if (travelCreditInput === '') {
+                    setTravelCreditInput('0')
+                    setTravelCreditMinutes(0)
+                    return
+                  }
+
+                  const normalizedValue = String(Math.max(0, Number(travelCreditInput) || 0))
+                  setTravelCreditInput(normalizedValue)
+                  setTravelCreditMinutes(Number(normalizedValue))
+                }}
               />
             </div>
 
