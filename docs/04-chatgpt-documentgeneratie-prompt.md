@@ -40,52 +40,71 @@ Dit document bevat een herbruikbare masterprompt om ChatGPT drie publicatieklare
 2. functionele analyse
 3. gebruikershandleiding
 
-De prompt is zo opgesteld dat de output geschikt is als Markdown-bron voor verdere omzetting naar PDF en Microsoft Word via Pandoc.
+De prompt is zo opgesteld dat ChatGPT eerst de juiste outputkeuze en ontbrekende bronbestanden opvraagt, en daarna de gevraagde documenten als PDF of DOCX-bestanden oplevert.
 
 ## Gebruik
 
 1. Open ChatGPT.
 2. Kopieer enkel de volledige tekst uit de sectie `Masterprompt` hieronder en plak die rechtstreeks in de ChatGPT dialoogbox.
-3. Wacht eerst op de controlevragen van ChatGPT als bronbestanden, logo's of metadata ontbreken.
-4. Geef daarna pas de gevraagde bestanden of ontbrekende informatie door.
-5. Voeg indien nodig actuele broninformatie toe:
+3. ChatGPT moet eerst vragen:
+   - of je output `pdf` of `docx` wilt
+   - welke documenten gegenereerd moeten worden: document 1, 2, 3 of alle 3
+4. Wacht daarna op de controlevragen van ChatGPT als bronbestanden, logo's of metadata ontbreken.
+5. Geef daarna pas de gevraagde bestanden of ontbrekende informatie door.
+6. Voeg indien nodig actuele broninformatie toe:
    - `SPEC.md`
    - huidige codebase
    - `README.md`
    - `CHANGELOG.md`
    - de bestaande 3 hoofddocumenten
-6. Vraag ChatGPT om de 3 documenten afzonderlijk terug te geven.
-7. Sla de output op als:
-   - `docs/01-technical-design.md`
-   - `docs/02-functionele-analyse.md`
-   - `docs/03-gebruikershandleiding.md`
+7. Als alle bronbestanden aanwezig zijn, moet ChatGPT de gevraagde bestanden genereren en downloadlinks aanbieden.
 
 ## Masterprompt
 
 ```text
-Je bent een senior technical writer, business analyst en product documentalist.
+Je bent een senior technical writer, business analyst, product documentalist en publicatie-assistent.
 
-Je moet voor het project `timesheet` exact drie Markdown-documenten genereren die bedoeld zijn als publicatiebronnen voor Pandoc-export naar PDF en Microsoft Word.
+Je moet voor het project `timesheet` één of meerdere publicatiebestanden genereren voor PDF of Microsoft Word.
 
 Werkwijze die je verplicht moet volgen:
-1. Controleer eerst of alle noodzakelijke broninformatie aanwezig is.
-2. Als er iets ontbreekt, stel eerst gerichte vragen en genereer nog niets.
-3. Genereer pas de drie documenten nadat alle noodzakelijke input beschikbaar is.
+1. Vraag eerst welk outputformaat gewenst is: `pdf` of `docx`.
+2. Vraag daarna welke documenten gegenereerd moeten worden:
+   - alleen document 1
+   - alleen document 2
+   - alleen document 3
+   - een combinatie
+   - of alle 3
+3. Controleer daarna of alle noodzakelijke bronbestanden aanwezig zijn.
+4. Als er iets ontbreekt, stel eerst gerichte vragen en genereer nog niets.
+5. Genereer pas de gevraagde bestanden nadat alle noodzakelijke input beschikbaar is.
+6. Lever de output uiteindelijk als één of meerdere bestanden van het gekozen formaat, elk met een downloadlink.
 
 Wat je minimaal nodig hebt om te starten:
 - actuele functionele en technische broninformatie over het project
 - de gewenste documentstructuur
 - het logo dat op het voorblad moet komen
 - versie en datum indien die niet expliciet gegeven zijn
+- alle noodzakelijke publicatiebronbestanden voor het gekozen formaat
 
 Als een of meer van deze zaken ontbreken, moet je eerst vragen stellen.
 
 Voorbeelden van verplichte controlevragen:
+- Wil je output als `pdf` of als `docx`?
+- Welke documenten wil je laten genereren: 1, 2, 3 of alle 3?
 - Zijn de actuele Markdown-bronbestanden of de huidige codebase beschikbaar?
 - Is het correcte logo-bestand beschikbaar en wat is het exacte pad of bestand?
-- Wil je PDF, DOCX of beide als doeloutput?
 - Is de versie nog steeds `1.0.0` en wat is de publicatiedatum?
 - Moet ik de bestaande documenten herschrijven of volledig opnieuw genereren?
+
+Controleer expliciet of de noodzakelijke bronbestanden voor het gekozen formaat aanwezig zijn, zoals:
+
+- `.md`
+- `.yaml`
+- `.tex`
+- `.jpg`
+- `.png`
+
+Als een of meer van die bestanden ontbreken, vraag de gebruiker om ze in het chatvenster aan te leveren voordat je verdergaat.
 
 Als de Markdown-documenten of logo's ontbreken, zeg dat expliciet en vraag de gebruiker om ze eerst aan te leveren.
 
@@ -111,9 +130,12 @@ Doelen:
 3. Document 3: volledige gebruikers- en beheerdershandleiding voor eindgebruikers zonder technische programmeerkennis.
 
 Belangrijke outputregels:
-- Geef exact 3 afzonderlijke Markdown-documenten terug.
-- Elk document moet volledige Pandoc YAML-frontmatter bevatten.
-- Elk document moet voorzien zijn van:
+- Vraag eerst om outputformaat en gewenste documentselectie voordat je begint.
+- Als output `pdf` is, lever dan één of meerdere PDF-bestanden op.
+- Als output `docx` is, lever dan één of meerdere Word-bestanden op.
+- Geef de finale output niet terug als losse markdowncodeblokken, maar als concrete bestanden met downloadlink.
+- Gebruik Markdown met Pandoc-geschikte frontmatter als interne bronstructuur voor het genereren van die bestanden.
+- Elk gegenereerd document moet voorzien zijn van:
   - titel
   - subtitel
   - documenttype
@@ -229,14 +251,16 @@ Brongebruik:
 - Als bronbestanden ontbreken, vraag er expliciet naar.
 - Als het logo ontbreekt, vraag expliciet naar het bestand of het pad.
 - Als de gebruiker alleen deze prompt plakt zonder bronbestanden, moet je eerst vragen welke bestanden of inhoud beschikbaar zijn.
+- Voor PDF- of DOCX-generatie moet je expliciet controleren of de nodige `.md`, `.yaml`, `.tex`, `.jpg` en `.png` bronnen aanwezig zijn voor de gewenste output.
 
 Outputformaat:
-- Geef de drie documenten in deze volgorde:
+- Vraag eerst welk formaat gewenst is en welke documenten geselecteerd zijn.
+- Als alle input aanwezig is, genereer dan alleen de gevraagde bestanden.
+- Lever per bestand een duidelijke downloadlink op.
+- Gebruik deze namen voor de onderliggende documentbronnen:
   1. `01-technical-design.md`
   2. `02-functionele-analyse.md`
   3. `03-gebruikershandleiding.md`
-- Zet elk document in een apart Markdown codeblok.
-- Voeg geen extra uitleg buiten de documenten toe.
 
 Uitzondering op bovenstaande outputregel:
 - Als noodzakelijke bronbestanden, logo's of metadata ontbreken, geef dan nog geen documenten terug.
@@ -252,5 +276,6 @@ Gebruik deze masterprompt samen met:
 - `README.md`
 - `CHANGELOG.md`
 - de bestaande drie hoofddocumenten
+- de relevante Pandoc bronbestanden (`.yaml`, `.tex`) en logo-bestanden (`.jpg`, `.png`) als je echte PDF of DOCX wilt laten genereren
 
 Dan is de kans het grootst dat ChatGPT de documenten volledig en consistent opnieuw kan opbouwen.
