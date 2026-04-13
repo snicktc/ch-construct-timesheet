@@ -44,11 +44,32 @@ footer-right: "Pagina \\thepage"
 | Eigenaar | CH Construct |
 | Doelgroep | Eindgebruikers en lokale beheerders |
 
+## Revisiecontrole
+
+| Veld | Waarde |
+|---|---|
+| Versie | 1.0.0 |
+| Datum | 2026-04-13 |
+| Auteur | OpenCode |
+| Goedgekeurd door | Chris Van der Snickt |
+| Status | Goedgekeurde baseline |
+| Wijzigingssamenvatting | Geconsolideerde gebruikershandleiding voor installatie, gebruik, beheer en onderhoud van `timesheet` |
+
 ## Wijzigingshistoriek
 
 | Versie | Datum | Wijziging | Auteur |
 |---|---|---|---|
 | 1.0.0 | 2026-04-13 | Eerste geconsolideerde gebruikershandleiding | OpenCode |
+
+## Colofon / Contact
+
+| Veld | Waarde |
+|---|---|
+| Contactpersoon | Chris Van der Snickt |
+| Bedrijf | PM Nation CommV |
+| Ondernemingsnummer | BE0707.878.977 |
+| Adres | Burgstraat 8, 9960 Assenede |
+| E-mail | chris@vandersnickt.be |
 
 \newpage
 
@@ -65,30 +86,136 @@ Met de app kun je:
 - PDF exports maken
 - backups exporteren en terugzetten
 
-## 2. Installatie op Android
+## 2. Belangrijk voor je begint
 
-### 2.1 Open de app
+### 2.1 Wat je moet weten over deze app
 
-1. Open Chrome op je Android-smartphone.
-2. Ga naar de gepubliceerde URL van de app.
-3. Wacht tot de app volledig geladen is.
+Deze app werkt vandaag volledig lokaal op je smartphone.
 
-### 2.2 Installeer de app
+Dat betekent:
 
-1. Tik op de drie puntjes in Chrome.
-2. Kies `App installeren` of `Toevoegen aan startscherm`.
-3. Bevestig.
+- je gegevens staan op dit toestel
+- er is geen automatische cloudopslag
+- er is geen automatische synchronisatie tussen meerdere toestellen
+- als je van smartphone wisselt zonder backup, raak je je gegevens kwijt
 
-### 2.3 Eerste controle
+### 2.2 Belangrijke waarschuwing
 
-Na installatie:
+**Belangrijk:** alle gegevens staan momenteel lokaal op je smartphone.
 
-1. open de app via het icoon
-2. controleer of het welkomstscherm verschijnt of je bestaande profieldata zichtbaar is
+Maak daarom altijd eerst een backup in de app voordat je:
+
+- van smartphone verandert
+- je browsergegevens wist
+- je smartphone laat resetten
+- de app verwijdert en niet zeker weet dat je backup hebt
+
+## 3. Installatie op Android
+
+Deze uitleg is geschreven voor iemand die gewoon een smartphone gebruikt en geen technische kennis heeft.
+
+### 3.1 Wat heb je nodig?
+
+- een Android-smartphone
+- internetverbinding
+- de browser `Chrome`
+- de webadreslink van de app
+
+### 3.2 Open de app in Chrome
+
+1. Zoek op je smartphone de app `Chrome` en open die.
+2. Tik bovenaan in de adresbalk.
+3. Typ of plak het webadres van `timesheet`.
+4. Wacht tot de pagina volledig geladen is.
+
+### 3.3 Installeer de app
+
+1. Tik rechtsboven in Chrome op de **3 puntjes**.
+2. Zoek in het menu naar:
+   - `App installeren`, of
+   - `Toevoegen aan startscherm`
+3. Tik daarop.
+4. Bevestig met `Installeren` of `Toevoegen`.
+5. De app verschijnt daarna op je startscherm of in je applijst.
+
+### 3.4 Open de geïnstalleerde app
+
+1. Sluit Chrome.
+2. Zoek op je startscherm het nieuwe app-icoon.
+3. Open de app via dat icoon.
+
+### 3.5 Eerste controle na installatie
+
+Controleer meteen dit:
+
+- zie je het welkomstscherm of je bestaande profieldata?
+- opent de app zonder browserbalk?
+- kun je tussen schermen wisselen?
+
+### 3.6 Als je de knop `Installeren` niet ziet
+
+Probeer dan dit:
+
+1. herlaad de pagina
+2. wacht iets langer tot alles geladen is
+3. sluit Chrome volledig en open opnieuw
+4. controleer of je echt in `Chrome` zit en niet in een ingebouwde browser van bijvoorbeeld Facebook of WhatsApp
+
+### 3.7 Na een update
 
 Na een update kan het nodig zijn om de app volledig te sluiten en opnieuw te openen zodat de nieuwste versie actief wordt.
 
-## 3. Eerste profiel aanmaken
+## 4. Installatie op iPhone 15
+
+Gebruik op iPhone bij voorkeur **Safari** voor het installeren van de app.
+
+### 4.1 Wat heb je nodig?
+
+- een iPhone 15
+- internetverbinding
+- de browser `Safari`
+- de webadreslink van de app
+
+### 4.2 Open de app in Safari
+
+1. Open `Safari`.
+2. Tik in de adresbalk.
+3. Typ of plak het webadres van `timesheet`.
+4. Wacht tot de pagina volledig geladen is.
+
+### 4.3 Voeg de app toe aan je beginscherm
+
+1. Tik onderaan of bovenaan op de **deelknop** in Safari.
+2. Kies `Zet op beginscherm`.
+3. Controleer de naam van de app.
+4. Tik op `Voeg toe`.
+
+### 4.4 Open de app
+
+1. Ga naar je beginscherm.
+2. Zoek het nieuwe icoon.
+3. Open de app via dat icoon.
+
+### 4.5 Als `Zet op beginscherm` niet zichtbaar is
+
+Probeer dan dit:
+
+1. controleer of je echt in `Safari` zit
+2. laad de pagina opnieuw
+3. wacht tot de pagina volledig geladen is
+4. open het deelmenu opnieuw
+
+### 4.6 Belangrijke opmerking voor iPhone
+
+Op iPhone kunnen sommige PWA-functies verschillen van Android.
+
+Voorbeelden:
+
+- meldingen kunnen beperkter zijn
+- achtergrondgedrag kan anders zijn
+- installatie verloopt via `Zet op beginscherm` in plaats van via een expliciete `Installeer`-knop
+
+## 5. Eerste profiel aanmaken
 
 Als je de app voor het eerst gebruikt:
 
@@ -98,9 +225,9 @@ Als je de app voor het eerst gebruikt:
 
 Daarna opent het scherm `Vandaag`.
 
-## 4. Profielen gebruiken
+## 6. Profielen gebruiken
 
-### 4.1 Profiel kiezen
+### 6.1 Profiel kiezen
 
 Bovenaan de app zie je de profielchips.
 
@@ -108,7 +235,7 @@ Bovenaan de app zie je de profielchips.
 - tik op een ander profiel om over te schakelen
 - als de app ooit meldt dat er profieldata bestaat maar geen actief profiel geladen werd, kies je hier opnieuw een profiel of ga je naar `Meer`
 
-### 4.2 Profiel beheren
+### 6.2 Profiel beheren
 
 Ga naar `Meer` om:
 
@@ -117,7 +244,7 @@ Ga naar `Meer` om:
 - een profiel actief of inactief te zetten
 - een profielvolgorde te wijzigen
 
-## 5. Klanten beheren
+## 7. Klanten beheren
 
 Ga naar `Klanten` om:
 
@@ -128,9 +255,9 @@ Ga naar `Klanten` om:
 
 Bij het verwijderen krijg je altijd een bevestigingsvenster.
 
-## 6. Werkuren registreren
+## 8. Werkuren registreren
 
-## 6.1 Dag openen
+## 8.1 Dag openen
 
 Open `Vandaag` om werkuren voor een bepaalde dag te registreren.
 
@@ -139,7 +266,7 @@ Je kunt:
 - de datum veranderen met de pijlen
 - links en rechts swipen om van dag te wisselen
 
-## 6.2 Registratie maken
+## 8.2 Registratie maken
 
 Vul een blok in met:
 
@@ -154,7 +281,7 @@ Vul een blok in met:
 
 Tik daarna op `Opslaan`.
 
-## 6.3 Klant kiezen
+## 8.3 Klant kiezen
 
 Het klantveld werkt als volgt:
 
@@ -163,7 +290,7 @@ Het klantveld werkt als volgt:
 - kies een klant uit de lijst
 - of maak een nieuwe klant aan
 
-## 6.4 Tijd invullen
+## 8.4 Tijd invullen
 
 Gebruik de tijdchips voor snelle invoer.
 
@@ -172,7 +299,7 @@ Als de gewenste tijd er niet tussen staat:
 1. tik op `Ander...`
 2. kies een tijd via de tijdkiezer
 
-## 6.5 Pauze en rit-credit
+## 8.5 Pauze en rit-credit
 
 - pauze kies je via snelle chips
 - rit-credit staat onder `Meer opties`
@@ -181,7 +308,7 @@ Als de gewenste tijd er niet tussen staat:
 - zodra je begint te typen, verdwijnt die `0`
 - als je niets invult en het veld verlaat, springt het terug naar `0`
 
-## 6.6 Overlapwaarschuwing
+## 8.6 Overlapwaarschuwing
 
 Als een nieuw blok overlapt met een bestaand blok op dezelfde dag:
 
@@ -192,7 +319,7 @@ Als een nieuw blok overlapt met een bestaand blok op dezelfde dag:
 
 Deze waarschuwing komt uit de app zelf en niet uit een browserpopup.
 
-## 6.7 Blok bewerken of verwijderen
+## 8.7 Blok bewerken of verwijderen
 
 1. tik op het potloodicoon van een bestaand blok
 2. pas het blok aan
@@ -204,7 +331,7 @@ Om te verwijderen:
 2. tik op `Verwijder blok`
 3. bevestig de actie
 
-## 7. Zelfde als gisteren
+## 9. Zelfde als gisteren
 
 Als een dag nog leeg is, kan de app een groene kaart tonen:
 
@@ -212,7 +339,7 @@ Als een dag nog leeg is, kan de app een groene kaart tonen:
 
 Gebruik dit als je dezelfde blokken als de vorige werkdag wilt overnemen.
 
-## 8. Weekoverzicht gebruiken
+## 10. Weekoverzicht gebruiken
 
 Ga naar `Week` voor een overzicht van 2 weken.
 
@@ -223,7 +350,7 @@ Daar zie je:
 - subtotaal per week
 - samenvatting per klant
 
-### 8.1 Dag openen vanuit week
+### 10.1 Dag openen vanuit week
 
 Tik op een dagkaart om die dag te openen in `Vandaag`.
 
@@ -234,7 +361,7 @@ De app:
 - laat je meteen blokken toevoegen voor die dag
 - houdt die gekozen datum actief zodat je niet onbedoeld terugvalt op vandaag
 
-## 9. PDF exporteren en delen
+## 11. PDF exporteren en delen
 
 In `Week` kun je:
 
@@ -243,7 +370,7 @@ In `Week` kun je:
 
 Bij een volledig ingevulde tweewekenperiode verschijnt een extra exportbanner.
 
-## 10. Notificaties gebruiken
+## 12. Notificaties gebruiken
 
 Ga naar `Meer` om notificaties te beheren.
 
@@ -264,7 +391,51 @@ Let op:
 - webnotificaties hangen af van browserondersteuning
 - volledig achtergrondgestuurde planning blijft beperkter dan bij een native app
 
-## 11. Backup maken
+## 13. Applicatie beheren
+
+### 13.1 Profielen beheren
+
+Ga naar `Meer` om profielen te beheren.
+
+Daar kun je:
+
+- een profiel toevoegen
+- een profiel aanpassen
+- een profiel actief of inactief zetten
+- de profielvolgorde wijzigen
+- een profiel verwijderen als dat mag
+
+### 13.2 Klanten beheren
+
+Ga naar `Klanten` om klanten toe te voegen, aan te passen of te verwijderen.
+
+### 13.3 Notificaties beheren
+
+Ga naar `Meer` om notificaties te beheren en een testmelding te sturen.
+
+### 13.4 Updates van de app
+
+De app wordt bijgewerkt via de website waarop ze gepubliceerd staat.
+
+Als de app na een update vreemd reageert:
+
+1. sluit de app volledig
+2. open de app opnieuw
+3. indien nodig: verwijder de geïnstalleerde app en installeer opnieuw
+
+## 14. Belangrijk: gegevens en veiligheid
+
+**Belangrijk:** je gegevens staan momenteel lokaal op deze smartphone.
+
+Dat betekent:
+
+- zonder backup ben je die gegevens kwijt bij toestelwissel of browserreset
+- gegevens worden niet automatisch gesynchroniseerd naar een andere smartphone
+- verwijderen of resetten van data op dit toestel heeft onmiddellijk effect
+
+Maak altijd eerst een backup voordat je iets wist of een ander toestel begint te gebruiken.
+
+## 15. Backup maken
 
 Ga naar `Meer` en kies `Exporteer alle data`.
 
@@ -281,13 +452,21 @@ Daardoor blijft ook een deel van de lokale appvoorkeuren behouden bij herstel.
 
 Bewaar dit bestand op een veilige plaats.
 
-## 11.1 Gegevensbewaring
+Aanbevolen plaatsen om je backup te bewaren:
+
+- iCloud Drive
+- Google Drive
+- OneDrive
+- e-mail naar jezelf
+- een computer of USB-opslag
+
+### 15.1 Gegevensbewaring
 
 - alle gegevens blijven lokaal op dit toestel bewaard
 - gegevens blijven beschikbaar nadat je de app sluit en opnieuw opent
 - gegevens worden niet automatisch gesynchroniseerd naar andere toestellen
 
-## 12. Data importeren
+## 16. Data importeren
 
 Ga naar `Meer` en kies `Importeer data`.
 
@@ -296,9 +475,16 @@ Belangrijk:
 - import vervangt alle huidige gegevens op dit toestel
 - de app vraagt altijd bevestiging
 
+Stappen:
+
+1. tik op `Importeer data`
+2. kies je backupbestand
+3. lees de waarschuwing aandachtig
+4. bevestig alleen als je zeker bent
+
 Na succesvolle import wordt de app herladen.
 
-## 13. Alle data wissen
+## 17. Alle data wissen
 
 Ga naar `Meer` en kies `Wis alle data`.
 
@@ -308,7 +494,53 @@ Belangrijk:
 - de app vraagt altijd bevestiging
 - na succesvolle reset wordt de app herladen
 
-## 14. Onderhoud en goede werkwijze
+## 18. Problemen oplossen
+
+### 18.1 De app toont niets of een vreemd scherm
+
+- sluit de app volledig
+- open opnieuw
+- controleer of je internet had bij de eerste installatie
+- installeer de app opnieuw indien nodig
+
+### 18.2 Ik zie de installeerknop niet
+
+Op Android:
+
+- gebruik Chrome
+- herlaad de pagina
+- open de website niet via Facebook, WhatsApp of een andere ingebouwde browser
+
+Op iPhone 15:
+
+- gebruik Safari
+- open het deelmenu opnieuw
+- zoek naar `Zet op beginscherm`
+
+### 18.3 Er is profieldata, maar de app vraagt om een profiel te herstellen
+
+- kies een profiel via de profielchips
+- of open `Meer` om profielen te beheren
+- daarna kun je weer normaal verderwerken
+
+### 18.4 Het lijkt alsof het verkeerde profiel actief is
+
+- kijk naar de duidelijk gemarkeerde actieve profielchip
+- tik expliciet op het gewenste profiel
+
+### 18.5 Notificaties werken niet
+
+- controleer toestemming in de browser
+- controleer of notificaties in `Meer` ingeschakeld zijn
+- test via de knop `Test notificatie`
+- houd rekening met beperkingen van webnotificaties: volledig achtergrondgestuurde planning is beperkter dan bij een native app
+
+### 18.6 Data kwijt na browserreset of toestelwissel
+
+- herstel via een eerder gemaakte backup
+- zonder backup is lokale data niet te recupereren
+
+## 19. Onderhoud en goede werkwijze
 
 Aanbevolen werkwijze:
 
@@ -318,39 +550,7 @@ Aanbevolen werkwijze:
 - gebruik meerdere profielen alleen wanneer dit echt nodig is
 - maak altijd eerst een backup voor je browserdata wist of van toestel wisselt
 
-## 15. Problemen oplossen
-
-### De app toont niets of een vreemd scherm
-
-- sluit de app volledig
-- open opnieuw
-- controleer of je internet had bij de eerste installatie
-- installeer de app opnieuw indien nodig
-
-### Er is profieldata, maar de app vraagt om een profiel te herstellen
-
-- kies een profiel via de profielchips
-- of open `Meer` om profielen te beheren
-- daarna kun je weer normaal verderwerken
-
-### Het lijkt alsof het verkeerde profiel actief is
-
-- kijk naar de duidelijk gemarkeerde actieve profielchip
-- tik expliciet op het gewenste profiel
-
-### Notificaties werken niet
-
-- controleer toestemming in de browser
-- controleer of notificaties in `Meer` ingeschakeld zijn
-- test via de knop `Test notificatie`
-- houd rekening met beperkingen van webnotificaties: volledig achtergrondgestuurde planning is beperkter dan bij een native app
-
-### Data kwijt na browserreset of toestelwissel
-
-- herstel via een eerder gemaakte backup
-- zonder backup is lokale data niet te recupereren
-
-## 16. Samenvatting voor dagelijks gebruik
+## 20. Samenvatting voor dagelijks gebruik
 
 Voor dagelijks gebruik volstaat meestal dit patroon:
 

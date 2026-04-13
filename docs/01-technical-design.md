@@ -45,11 +45,32 @@ footer-right: "Page \\thepage"
 | Intended audience | Development team, technical lead, deployment owner |
 | Source documents | `SPEC.md`, codebase, README, CHANGELOG |
 
+## Revision Control
+
+| Field | Value |
+|---|---|
+| Version | 1.0.0 |
+| Date | 2026-04-13 |
+| Author | OpenCode |
+| Approved by | Chris Van der Snickt |
+| Status | Approved baseline |
+| Change summary | Consolidated technical design for the current `timesheet` implementation and publishing workflow |
+
 ## Revision History
 
 | Version | Date | Change | Author |
 |---|---|---|---|
 | 1.0.0 | 2026-04-13 | Initial consolidated technical design | OpenCode |
+
+## Colophon / Contact
+
+| Field | Value |
+|---|---|
+| Contact person | Chris Van der Snickt |
+| Company | PM Nation CommV |
+| VAT number | BE0707.878.977 |
+| Address | Burgstraat 8, 9960 Assenede |
+| Email | chris@vandersnickt.be |
 
 \newpage
 

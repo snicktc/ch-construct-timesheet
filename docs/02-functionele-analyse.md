@@ -45,11 +45,32 @@ footer-right: "Pagina \\thepage"
 | Doelgroep | Product owner, business analyst, development team |
 | Bronnen | `SPEC.md`, huidige applicatie, bestaande projectdocumentatie |
 
+## Revisiecontrole
+
+| Veld | Waarde |
+|---|---|
+| Versie | 1.0.0 |
+| Datum | 2026-04-13 |
+| Auteur | OpenCode |
+| Goedgekeurd door | Chris Van der Snickt |
+| Status | Goedgekeurde baseline |
+| Wijzigingssamenvatting | Geconsolideerde functionele analyse van de actuele `timesheet` app en businessregels |
+
 ## Wijzigingshistoriek
 
 | Versie | Datum | Wijziging | Auteur |
 |---|---|---|---|
 | 1.0.0 | 2026-04-13 | Eerste geconsolideerde functionele analyse | OpenCode |
+
+## Colofon / Contact
+
+| Veld | Waarde |
+|---|---|
+| Contactpersoon | Chris Van der Snickt |
+| Bedrijf | PM Nation CommV |
+| Ondernemingsnummer | BE0707.878.977 |
+| Adres | Burgstraat 8, 9960 Assenede |
+| E-mail | chris@vandersnickt.be |
 
 \newpage
 
