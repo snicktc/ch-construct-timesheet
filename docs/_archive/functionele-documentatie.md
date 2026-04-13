@@ -16,7 +16,7 @@
   - standaard pauze
   - standaard starttijd
   - actief/inactief status
-- Alleen actieve profielen verschijnen in de profielwisselaar bovenaan de app.
+- Alleen actieve profielen verschijnen in de profielwijzer bovenaan de app.
 - Het laatst gekozen profiel wordt onthouden.
 
 ### Klanten

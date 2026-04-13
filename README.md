@@ -1,35 +1,20 @@
 # timesheet
 
-PWA voor werkurenregistratie per profiel, met lokale opslag in IndexedDB, 2-wekelijks weekoverzicht en PDF-export.
+PWA voor werkurenregistratie per profiel, met lokale opslag in IndexedDB, tweewekenoverzicht en PDF-export.
 
-## Documentatie
+## Hoofddocumentatie
 
-- Functioneel: `docs/functionele-documentatie.md`
-- Technisch: `docs/technische-documentatie.md`
-- Profiling: `docs/runtime-profiling-plan.md`
+- Technisch ontwerp: `docs/01-technical-design.md`
+- Functionele analyse: `docs/02-functionele-analyse.md`
+- Gebruikershandleiding: `docs/03-gebruikershandleiding.md`
+- Publicatiehandleiding: `docs/_shared/document-publishing-guide.md`
+- Word reference strategie: `docs/_shared/reference-docx-strategy.md`
+
+## Overige referenties
+
 - Changelog: `CHANGELOG.md`
 - Bronspecificatie: `SPEC.md`
-
-## Kernfeatures
-
-- meerdere profielen met eigen exportbestemmeling en logo
-- gedeelde klanten- en locatieslijst
-- dagregistratie met meerdere blokken per dag
-- snelle tijdchips, repeat van vorige werkdag en dagtotalen
-- 2-wekenoverzicht met subtotalen en samenvatting per klant
-- PDF-export en delen via Web Share API
-- PWA met service worker en offline caching
-- lokale notificatie-instellingen
-- backup, import en reset van alle data
-
-## Stack
-
-- React 19
-- TypeScript
-- Vite 7
-- Dexie / IndexedDB
-- jsPDF + jsPDF-AutoTable
-- vite-plugin-pwa
+- Archief oude documentatie: `docs/_archive/`
 
 ## Scripts
 
@@ -41,6 +26,26 @@ npm run build
 npm run preview
 ```
 
+## Pandoc export
+
+Voorbeeld PDF:
+
+```bash
+pandoc --defaults docs/_shared/pandoc-defaults-pdf.yaml docs/01-technical-design.md -o output/01-technical-design.pdf
+```
+
+Voorbeeld Word:
+
+```bash
+pandoc --defaults docs/_shared/pandoc-defaults-docx.yaml docs/03-gebruikershandleiding.md -o output/03-gebruikershandleiding.docx
+```
+
+Geautomatiseerde export:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docs/_shared/build-docs.ps1
+```
+
 ## Opmerking
 
-Alle data blijft lokaal op het toestel. Er is geen backend of serverdatabase.
+Alle businessdata blijft lokaal op het toestel. Er is geen backend of serverdatabase.

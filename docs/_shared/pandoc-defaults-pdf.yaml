@@ -1,0 +1,20 @@
+from: markdown
+to: pdf
+pdf-engine: xelatex
+standalone: true
+toc: true
+toc-depth: 3
+numbersections: true
+shift-heading-level-by: 0
+resource-path:
+  - .
+  - docs
+  - public
+variables:
+  geometry: "margin=22mm"
+  colorlinks: true
+  linkcolor: "1E3A5F"
+  urlcolor: "1E3A5F"
+  toc-title: "Inhoud"
+include-in-header:
+  - docs/_shared/pandoc-header.tex
