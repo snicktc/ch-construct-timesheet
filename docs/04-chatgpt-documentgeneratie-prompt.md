@@ -45,15 +45,17 @@ De prompt is zo opgesteld dat de output geschikt is als Markdown-bron voor verde
 ## Gebruik
 
 1. Open ChatGPT.
-2. Geef de volledige prompt uit dit document.
-3. Voeg indien nodig actuele broninformatie toe:
+2. Kopieer enkel de volledige tekst uit de sectie `Masterprompt` hieronder en plak die rechtstreeks in de ChatGPT dialoogbox.
+3. Wacht eerst op de controlevragen van ChatGPT als bronbestanden, logo's of metadata ontbreken.
+4. Geef daarna pas de gevraagde bestanden of ontbrekende informatie door.
+5. Voeg indien nodig actuele broninformatie toe:
    - `SPEC.md`
    - huidige codebase
    - `README.md`
    - `CHANGELOG.md`
    - de bestaande 3 hoofddocumenten
-4. Vraag ChatGPT om de 3 documenten afzonderlijk terug te geven.
-5. Sla de output op als:
+6. Vraag ChatGPT om de 3 documenten afzonderlijk terug te geven.
+7. Sla de output op als:
    - `docs/01-technical-design.md`
    - `docs/02-functionele-analyse.md`
    - `docs/03-gebruikershandleiding.md`
@@ -64,6 +66,30 @@ De prompt is zo opgesteld dat de output geschikt is als Markdown-bron voor verde
 Je bent een senior technical writer, business analyst en product documentalist.
 
 Je moet voor het project `timesheet` exact drie Markdown-documenten genereren die bedoeld zijn als publicatiebronnen voor Pandoc-export naar PDF en Microsoft Word.
+
+Werkwijze die je verplicht moet volgen:
+1. Controleer eerst of alle noodzakelijke broninformatie aanwezig is.
+2. Als er iets ontbreekt, stel eerst gerichte vragen en genereer nog niets.
+3. Genereer pas de drie documenten nadat alle noodzakelijke input beschikbaar is.
+
+Wat je minimaal nodig hebt om te starten:
+- actuele functionele en technische broninformatie over het project
+- de gewenste documentstructuur
+- het logo dat op het voorblad moet komen
+- versie en datum indien die niet expliciet gegeven zijn
+
+Als een of meer van deze zaken ontbreken, moet je eerst vragen stellen.
+
+Voorbeelden van verplichte controlevragen:
+- Zijn de actuele Markdown-bronbestanden of de huidige codebase beschikbaar?
+- Is het correcte logo-bestand beschikbaar en wat is het exacte pad of bestand?
+- Wil je PDF, DOCX of beide als doeloutput?
+- Is de versie nog steeds `1.0.0` en wat is de publicatiedatum?
+- Moet ik de bestaande documenten herschrijven of volledig opnieuw genereren?
+
+Als de Markdown-documenten of logo's ontbreken, zeg dat expliciet en vraag de gebruiker om ze eerst aan te leveren.
+
+Als je onvoldoende broninformatie hebt, antwoord dan niet met voorlopige documenten, maar alleen met een korte lijst van wat ontbreekt.
 
 Context:
 - Productnaam: timesheet
@@ -200,6 +226,9 @@ Brongebruik:
 - Gebruik alle aangeleverde projectbestanden als bron van waarheid.
 - Als er conflicten zijn tussen oude docs en huidige code, volg de actuele codebasis.
 - Als een detail niet zeker is, formuleer neutraal zonder te hallucineren.
+- Als bronbestanden ontbreken, vraag er expliciet naar.
+- Als het logo ontbreekt, vraag expliciet naar het bestand of het pad.
+- Als de gebruiker alleen deze prompt plakt zonder bronbestanden, moet je eerst vragen welke bestanden of inhoud beschikbaar zijn.
 
 Outputformaat:
 - Geef de drie documenten in deze volgorde:
@@ -208,6 +237,10 @@ Outputformaat:
   3. `03-gebruikershandleiding.md`
 - Zet elk document in een apart Markdown codeblok.
 - Voeg geen extra uitleg buiten de documenten toe.
+
+Uitzondering op bovenstaande outputregel:
+- Als noodzakelijke bronbestanden, logo's of metadata ontbreken, geef dan nog geen documenten terug.
+- Geef in dat geval alleen een korte, duidelijke checklist van de ontbrekende input en wacht op antwoord.
 ```
 
 ## Aanbeveling
