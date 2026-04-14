@@ -42,24 +42,16 @@ const getEntriesForEmployeeDate = async (employeeId: number, date: string) => {
 }
 
 const getPreviousWorkdayEntries = async (employeeId: number, date: string) => {
-  const priorEntries = await db.timeEntries
+  const previousEntry = await db.timeEntries
     .where('[employeeId+date]')
-    .between([employeeId, Dexie.minKey], [employeeId, date], false, true)
-    .toArray()
+    .between([employeeId, Dexie.minKey], [employeeId, date], false, false)
+    .last()
 
-  if (priorEntries.length === 0) {
+  if (!previousEntry) {
     return []
   }
 
-  const previousWorkday = priorEntries.reduce((latestDate, entry) => {
-    if (entry.date > latestDate) {
-      return entry.date
-    }
-
-    return latestDate
-  }, priorEntries[0].date)
-
-  return getEntriesForEmployeeDate(employeeId, previousWorkday)
+  return getEntriesForEmployeeDate(employeeId, previousEntry.date)
 }
 
 export function useTimeEntry(employeeId: number | null, date: string) {
@@ -109,7 +101,7 @@ export function useTimeEntry(employeeId: number | null, date: string) {
   const createEntry = async (input: SaveTimeEntryInput) => {
     const currentDayCount = entries.length
 
-    return db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
+    const { entryId, clientId } = await db.transaction('rw', db.timeEntries, db.locations, async () => {
       const client = await db.clients.get(input.clientId)
 
       if (!client) {
@@ -125,14 +117,18 @@ export function useTimeEntry(employeeId: number | null, date: string) {
       })
 
       await ensureLocationExists(record.location)
-      await db.clients.update(client.id!, { lastUsedAt: new Date() })
+      const newEntryId = await db.timeEntries.add(record)
 
-      return db.timeEntries.add(record)
+      return { entryId: newEntryId, clientId: client.id! }
     })
+
+    void db.clients.update(clientId, { lastUsedAt: new Date() })
+
+    return entryId
   }
 
   const updateEntry = async (id: number, changes: Partial<TimeEntry>) => {
-    await db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
+    const clientIdToUpdate = await db.transaction('rw', db.timeEntries, db.locations, async () => {
       const existingEntry = await db.timeEntries.get(id)
 
       if (!existingEntry) {
@@ -149,12 +145,15 @@ export function useTimeEntry(employeeId: number | null, date: string) {
       const nextLocation = changes.location ?? existingEntry.location
       await ensureLocationExists(nextLocation)
 
-      await db.clients.update(client.id!, { lastUsedAt: new Date() })
       await db.timeEntries.update(id, {
         ...changes,
         clientName: changes.clientName ?? client.name,
       })
+
+      return client.id!
     })
+
+    void db.clients.update(clientIdToUpdate, { lastUsedAt: new Date() })
   }
 
   const deleteEntry = async (id: number) => {
