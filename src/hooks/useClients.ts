@@ -33,7 +33,7 @@ const syncLocationName = async (locationName: string) => {
     return
   }
 
-  const existingLocation = await db.locations.where('name').equalsIgnoreCase(trimmedLocationName).first()
+  const existingLocation = await db.locations.where('name').equals(trimmedLocationName).first()
 
   if (!existingLocation) {
     await db.locations.add(createLocationRecord({ name: trimmedLocationName }))

@@ -29,7 +29,7 @@ const ensureLocationExists = async (locationName: string) => {
     return
   }
 
-  const existingLocation = await db.locations.where('name').equalsIgnoreCase(trimmedLocationName).first()
+  const existingLocation = await db.locations.where('name').equals(trimmedLocationName).first()
 
   if (!existingLocation) {
     await db.locations.add(createLocationRecord({ name: trimmedLocationName }))
@@ -107,6 +107,8 @@ export function useTimeEntry(employeeId: number | null, date: string) {
   const visibleLoading = employeeId ? loading : false
 
   const createEntry = async (input: SaveTimeEntryInput) => {
+    const currentDayCount = entries.length
+
     return db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
       const client = await db.clients.get(input.clientId)
 
@@ -114,13 +116,12 @@ export function useTimeEntry(employeeId: number | null, date: string) {
         throw new Error('Klant niet gevonden.')
       }
 
-      const dayEntries = await getEntriesForEmployeeDate(input.employeeId, input.date)
       const record = createTimeEntryRecord({
         ...input,
-        sortOrder: input.sortOrder ?? dayEntries.length,
+        sortOrder: input.sortOrder ?? currentDayCount,
         clientName: input.clientName ?? client.name,
         breakMinutes:
-          input.breakMinutes ?? (dayEntries.length === 0 ? DEFAULT_BREAK_MINUTES : 0),
+          input.breakMinutes ?? (currentDayCount === 0 ? DEFAULT_BREAK_MINUTES : 0),
       })
 
       await ensureLocationExists(record.location)
