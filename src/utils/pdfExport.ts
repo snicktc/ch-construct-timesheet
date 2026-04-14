@@ -266,6 +266,7 @@ const addWeekTable = (
     cellW: number
     startY: number
     endY: number
+    isWeekend: boolean
   }
 
   const dayMergeMap = new Map<number, DayMergeEntry>()
@@ -337,6 +338,8 @@ const addWeekTable = (
       const cellY = hookData.cell.y
       const cellH = hookData.cell.height
 
+      const rowRaw = hookData.row.raw as string[] | undefined
+      const isWeekendRow = rowRaw?.[1] === 'Weekend'
       const existing = dayMergeMap.get(dayIdx)
 
       if (!existing) {
@@ -346,6 +349,7 @@ const addWeekTable = (
           cellW,
           startY: cellY,
           endY: cellY + cellH,
+          isWeekend: isWeekendRow,
         })
       } else {
         existing.endY = cellY + cellH
@@ -359,16 +363,18 @@ const addWeekTable = (
   const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
 
   for (const [dayIdx, entry] of dayMergeMap) {
-    if (!entry.value) {
-      continue
-    }
-
-    const fillColor: [number, number, number] = dayIdx % 2 === 0
-      ? [255, 255, 255]
-      : [235, 242, 250]
+    const fillColor: [number, number, number] = entry.isWeekend
+      ? [242, 242, 242]
+      : dayIdx % 2 === 0
+        ? [255, 255, 255]
+        : [235, 242, 250]
 
     doc.setFillColor(...fillColor)
     doc.rect(entry.cellX, entry.startY, entry.cellW, entry.endY - entry.startY, 'F')
+
+    if (!entry.value) {
+      continue
+    }
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
