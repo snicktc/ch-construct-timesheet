@@ -2,7 +2,6 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 import type { Employee, TimeEntry } from '../db/database'
-import { getDefaultLogoForRecipient } from './logoUtils'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from './timeCalc'
 import {
   formatDateKey,
@@ -36,6 +35,37 @@ const detectImageFormat = (dataUrl: string) => {
 
   return 'JPEG'
 }
+
+const DEFAULT_LOGO_PATHS: Record<string, string> = {
+  'ch construct': 'logos/logo_CH-Construct.jpg',
+  vbw: 'logos/logo_VBW.png',
+}
+
+const loadLogoViaCanvas = (src: string): Promise<string> =>
+  new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+
+        if (!ctx) {
+          resolve('')
+          return
+        }
+
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      } catch {
+        resolve('')
+      }
+    }
+    img.onerror = () => resolve('')
+    img.src = src
+  })
 
 const sanitizeFilePart = (value: string) => value.replace(/[^a-z0-9-_]+/gi, '_').replace(/^_+|_+$/g, '')
 
@@ -84,10 +114,11 @@ const addHeader = async (
   let logoDataUrl = employee.exportLogo || ''
 
   if (!logoDataUrl) {
-    try {
-      logoDataUrl = await getDefaultLogoForRecipient(employee.exportRecipient)
-    } catch {
-      logoDataUrl = ''
+    const baseUrl = import.meta.env.BASE_URL
+    const logoPath = DEFAULT_LOGO_PATHS[employee.exportRecipient.trim().toLowerCase()]
+
+    if (logoPath) {
+      logoDataUrl = await loadLogoViaCanvas(`${baseUrl}${logoPath}`)
     }
   }
 
@@ -128,6 +159,7 @@ const addWeekTable = (
 ) => {
   const body: Array<Array<string>> = []
   const rowDayIndices: number[] = []
+  const rowDaySizes: number[] = []
   let dayIndex = 0
 
   for (const date of weekDates) {
@@ -141,6 +173,7 @@ const addWeekTable = (
         '', '', '', '', '', '', '—',
       ])
       rowDayIndices.push(dayIndex)
+      rowDaySizes.push(1)
       dayIndex++
       continue
     }
@@ -164,13 +197,19 @@ const addWeekTable = (
       clientLastRowIndex.set(entry.clientName, index)
     })
 
+    let rowsForDay = 0
+    dateEntries.forEach((entry) => {
+      rowsForDay++
+      if (entry.notes) rowsForDay++
+    })
+
     dateEntries.forEach((entry, index) => {
+      const isFirstOfDay = index === 0
       const isLastOfClient = clientLastRowIndex.get(entry.clientName) === index
-      const isLastOfDay = index === dateEntries.length - 1
       const clientTotal = clientTotals.get(entry.clientName) ?? 0
 
       body.push([
-        index === 0 ? formatShortDate(date) : '',
+        isFirstOfDay ? formatShortDate(date) : '',
         entry.clientName,
         entry.location,
         entry.startTime,
@@ -178,13 +217,15 @@ const addWeekTable = (
         entry.breakMinutes > 0 ? formatMinutesAsHours(entry.breakMinutes) : '',
         entry.isDriver,
         isLastOfClient ? formatMinutesAsHours(clientTotal) : '',
-        isLastOfDay ? formatMinutesAsHours(dayTotal) : '',
+        isFirstOfDay ? formatMinutesAsHours(dayTotal) : '',
       ])
       rowDayIndices.push(dayIndex)
+      rowDaySizes.push(rowsForDay)
 
       if (entry.notes) {
         body.push(['', `opm: ${entry.notes}`, '', '', '', '', '', '', ''])
         rowDayIndices.push(dayIndex)
+        rowDaySizes.push(rowsForDay)
       }
     })
 
@@ -249,6 +290,49 @@ const addWeekTable = (
           hookData.cell.styles.textColor = [107, 114, 128]
         }
       }
+    },
+    willDrawCell: (hookData) => {
+      if (hookData.section !== 'body' || hookData.column.index !== 8) {
+        return
+      }
+
+      const rowIdx = hookData.row.index
+      const dayIdx = rowDayIndices[rowIdx] ?? 0
+      const prevDayIdx = rowIdx > 0 ? (rowDayIndices[rowIdx - 1] ?? -1) : -1
+      const nextDayIdx = rowDayIndices[rowIdx + 1] ?? -1
+      const isSameDayAsAbove = dayIdx === prevDayIdx
+      const isSameDayAsBelow = dayIdx === nextDayIdx
+
+      if (!isSameDayAsAbove && !isSameDayAsBelow) {
+        return
+      }
+
+      const doc2 = hookData.doc
+      const x = hookData.cell.x
+      const y = hookData.cell.y
+      const w = hookData.cell.width
+      const h = hookData.cell.height
+
+      const dayIdx2 = dayIdx
+      const fillColor = (hookData.row.raw as string[])?.[1] === 'Weekend'
+        ? [242, 242, 242]
+        : dayIdx2 % 2 === 0
+          ? [255, 255, 255]
+          : [235, 242, 250]
+
+      doc2.setDrawColor(fillColor[0], fillColor[1], fillColor[2])
+      doc2.setLineWidth(0.5)
+
+      if (isSameDayAsAbove) {
+        doc2.line(x, y, x + w, y)
+      }
+
+      if (isSameDayAsBelow) {
+        doc2.line(x, y + h, x + w, y + h)
+      }
+
+      doc2.setDrawColor(220, 220, 220)
+      doc2.setLineWidth(0.2)
     },
   })
 
