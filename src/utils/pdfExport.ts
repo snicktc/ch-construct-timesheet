@@ -260,10 +260,20 @@ const addWeekTable = (
     return total + calculateDayTotalMinutes(dateEntries)
   }, 0)
 
+  type DayMergeEntry = {
+    value: string
+    cellX: number
+    cellW: number
+    startY: number
+    endY: number
+  }
+
+  const dayMergeMap = new Map<number, DayMergeEntry>()
+
   autoTable(doc, {
     startY,
     head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/klant', 'Totaal/dag']],
-    body,
+    body: body.map((row) => [...row.slice(0, 8), '']),
     foot: [['', '', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
     theme: 'grid',
     styles: {
@@ -321,29 +331,57 @@ const addWeekTable = (
 
       const rowIdx = hookData.row.index
       const dayIdx = rowDayIndices[rowIdx] ?? 0
-      const nextDayIdx = rowDayIndices[rowIdx + 1] ?? -1
+      const originalValue = body[rowIdx]?.[8] ?? ''
+      const cellX = hookData.cell.x
+      const cellW = hookData.cell.width
+      const cellY = hookData.cell.y
+      const cellH = hookData.cell.height
 
-      if (dayIdx !== nextDayIdx) {
-        return
+      const existing = dayMergeMap.get(dayIdx)
+
+      if (!existing) {
+        dayMergeMap.set(dayIdx, {
+          value: originalValue,
+          cellX,
+          cellW,
+          startY: cellY,
+          endY: cellY + cellH,
+        })
+      } else {
+        existing.endY = cellY + cellH
+        if (!existing.value && originalValue) {
+          existing.value = originalValue
+        }
       }
-
-      const x = hookData.cell.x
-      const y = hookData.cell.y + hookData.cell.height
-      const w = hookData.cell.width
-
-      const fillColor: [number, number, number] = dayIdx % 2 === 0
-        ? [255, 255, 255]
-        : [235, 242, 250]
-
-      hookData.doc.setFillColor(...fillColor)
-      hookData.doc.setDrawColor(...fillColor)
-      hookData.doc.rect(x + 0.15, y - 0.4, w - 0.3, 0.55, 'F')
-
-      hookData.doc.setDrawColor(220, 220, 220)
     },
   })
 
-  return (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
+  const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
+
+  for (const [dayIdx, entry] of dayMergeMap) {
+    if (!entry.value) {
+      continue
+    }
+
+    const fillColor: [number, number, number] = dayIdx % 2 === 0
+      ? [255, 255, 255]
+      : [235, 242, 250]
+
+    doc.setFillColor(...fillColor)
+    doc.rect(entry.cellX, entry.startY, entry.cellW, entry.endY - entry.startY, 'F')
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(26, 26, 26)
+
+    const midY = entry.startY + (entry.endY - entry.startY) / 2 + 1.5
+    doc.text(entry.value, entry.cellX + entry.cellW - 2.5, midY, { align: 'right' })
+  }
+
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(0, 0, 0)
+
+  return finalY
 }
 
 export async function generateTimesheetPdf({
@@ -394,8 +432,11 @@ export async function generateTimesheetPdf({
       textColor: [26, 26, 26],
       fontStyle: 'bold',
     },
+    margin: { left: 14 },
     columnStyles: {
-      2: { halign: 'right' },
+      0: { cellWidth: 112 },
+      1: { cellWidth: 28 },
+      2: { cellWidth: 28, halign: 'right' },
     },
   })
 
