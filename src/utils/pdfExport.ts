@@ -72,7 +72,39 @@ const buildClientSummary = (entries: TimeEntry[]) => {
   return [...summary.values()].sort((left, right) => right.totalMinutes - left.totalMinutes)
 }
 
-const addHeader = (
+const loadDefaultLogoDataUrl = async (exportRecipient: string): Promise<string> => {
+  const map: Record<string, string> = {
+    'ch construct': '/logos/logo_CH-Construct.jpg',
+    vbw: '/logos/logo_VBW.png',
+  }
+
+  const path = map[exportRecipient.trim().toLowerCase()]
+
+  if (!path) {
+    return ''
+  }
+
+  try {
+    const response = await fetch(path)
+
+    if (!response.ok) {
+      return ''
+    }
+
+    const blob = await response.blob()
+
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+      reader.onerror = () => resolve('')
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return ''
+  }
+}
+
+const addHeader = async (
   doc: jsPDF,
   employee: Employee,
   weekOneNumber: number,
@@ -80,25 +112,35 @@ const addHeader = (
   periodStart: Date,
   periodEnd: Date,
 ) => {
-  if (employee.exportLogo) {
+  let logoDataUrl = employee.exportLogo || ''
+
+  if (!logoDataUrl) {
+    logoDataUrl = await loadDefaultLogoDataUrl(employee.exportRecipient)
+  }
+
+  const hasLogo = Boolean(logoDataUrl)
+
+  if (hasLogo) {
     try {
-      doc.addImage(employee.exportLogo, detectImageFormat(employee.exportLogo), 14, 12, 32, 18)
+      doc.addImage(logoDataUrl, detectImageFormat(logoDataUrl), 14, 10, 32, 20)
     } catch (error) {
       console.error('Failed to add export logo to PDF', error)
     }
   }
 
+  const textX = hasLogo ? 52 : 14
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
-  doc.text('WERKURENREGISTRATIE', 52, 18)
+  doc.text('WERKURENREGISTRATIE', textX, 18)
 
   doc.setFontSize(12)
-  doc.text(`Naam: ${employee.name}`, 52, 25)
+  doc.text(`Naam: ${employee.name}`, textX, 25)
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
-  doc.text(`Week ${weekOneNumber}-${weekTwoNumber}`, 52, 31)
-  doc.text(`${formatLongDate(periodStart)} - ${formatLongDate(periodEnd)}`, 52, 37)
+  doc.text(`Week ${weekOneNumber}-${weekTwoNumber}`, textX, 31)
+  doc.text(`${formatLongDate(periodStart)} – ${formatLongDate(periodEnd)}`, textX, 37)
 
   doc.setDrawColor(210, 214, 221)
   doc.line(14, 42, 196, 42)
@@ -184,13 +226,13 @@ const addWeekTable = (
     },
     columnStyles: {
       0: { cellWidth: 20 },
-      1: { cellWidth: 36 },
-      2: { cellWidth: 24 },
+      1: { cellWidth: 34 },
+      2: { cellWidth: 22 },
       3: { cellWidth: 16 },
       4: { cellWidth: 16 },
-      5: { cellWidth: 16 },
-      6: { cellWidth: 18 },
-      7: { cellWidth: 20, halign: 'right', fontStyle: 'bold' },
+      5: { cellWidth: 14 },
+      6: { cellWidth: 26 },
+      7: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
       const row = hookData.row.raw as string[] | undefined
@@ -225,7 +267,7 @@ export async function generateTimesheetPdf({
   const totalMinutes = entries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0)
   const totalDays = new Set(entries.map((entry) => entry.date)).size
 
-  addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
+  await addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
 
   let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 48)
   currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 8)
