@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 import type { Employee, TimeEntry } from '../db/database'
+import { getDefaultLogoForRecipient } from './logoUtils'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from './timeCalc'
 import {
   formatDateKey,
@@ -72,38 +73,6 @@ const buildClientSummary = (entries: TimeEntry[]) => {
   return [...summary.values()].sort((left, right) => right.totalMinutes - left.totalMinutes)
 }
 
-const loadDefaultLogoDataUrl = async (exportRecipient: string): Promise<string> => {
-  const map: Record<string, string> = {
-    'ch construct': '/logos/logo_CH-Construct.jpg',
-    vbw: '/logos/logo_VBW.png',
-  }
-
-  const path = map[exportRecipient.trim().toLowerCase()]
-
-  if (!path) {
-    return ''
-  }
-
-  try {
-    const response = await fetch(path)
-
-    if (!response.ok) {
-      return ''
-    }
-
-    const blob = await response.blob()
-
-    return new Promise<string>((resolve) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
-      reader.onerror = () => resolve('')
-      reader.readAsDataURL(blob)
-    })
-  } catch {
-    return ''
-  }
-}
-
 const addHeader = async (
   doc: jsPDF,
   employee: Employee,
@@ -115,7 +84,11 @@ const addHeader = async (
   let logoDataUrl = employee.exportLogo || ''
 
   if (!logoDataUrl) {
-    logoDataUrl = await loadDefaultLogoDataUrl(employee.exportRecipient)
+    try {
+      logoDataUrl = await getDefaultLogoForRecipient(employee.exportRecipient)
+    } catch {
+      logoDataUrl = ''
+    }
   }
 
   const hasLogo = Boolean(logoDataUrl)
