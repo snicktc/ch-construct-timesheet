@@ -9,7 +9,7 @@ date: "2026-04-13"
 lang: en-GB
 toc: true
 toc-depth: 3
-numbersections: true
+numbersections: false
 titlepage: true
 logo: "_shared/logo_CH-Construct.png"
 header-left: "CH Construct"
@@ -19,20 +19,7 @@ footer-left: "Version 1.0.0"
 footer-right: "Page \\thepage"
 ---
 
-![CH Construct logo]($logo$){ width=55% }
-
-# $title$
-
-## $subtitle$
-
-**Company:** $company$  
-**Document type:** $document_type$  
-**Version:** $version$  
-**Date:** $date$
-
-\newpage
-
-## Document Control
+## Document Control {.unnumbered}
 
 | Field | Value |
 |---|---|
@@ -45,7 +32,7 @@ footer-right: "Page \\thepage"
 | Intended audience | Development team, technical lead, deployment owner |
 | Source documents | `SPEC.md`, codebase, README, CHANGELOG |
 
-## Revision Control
+## Revision Control {.unnumbered}
 
 | Field | Value |
 |---|---|
@@ -56,13 +43,13 @@ footer-right: "Page \\thepage"
 | Status | Approved baseline |
 | Change summary | Consolidated technical design for the current `timesheet` implementation and publishing workflow |
 
-## Revision History
+## Revision History {.unnumbered}
 
 | Version | Date | Change | Author |
 |---|---|---|---|
 | 1.0.0 | 2026-04-13 | Initial consolidated technical design | OpenCode |
 
-## Colophon / Contact
+## Colophon / Contact {.unnumbered}
 
 | Field | Value |
 |---|---|
@@ -72,9 +59,7 @@ footer-right: "Page \\thepage"
 | Address | Burgstraat 8, 9960 Assenede |
 | Email | chris@vandersnickt.be |
 
-\newpage
-
-## 1. Purpose and Scope
+## Purpose and Scope
 
 This document describes the technical structure of the `timesheet` application. It explains the chosen architecture, the implementation approach, the libraries and tools in use, and the operational characteristics of the app as deployed today.
 
@@ -86,7 +71,7 @@ The document is intended to support:
 - architectural review
 - troubleshooting and future extension work
 
-## 2. Product Summary
+## Product Summary
 
 `timesheet` is a frontend-only Progressive Web App for time registration. The application is optimized for mobile usage and stores all business data locally in the browser by using IndexedDB through Dexie.
 
@@ -101,9 +86,9 @@ The product currently supports:
 - backup, import and full local reset
 - offline usage through service worker caching
 
-## 3. Technology Stack and Version Matrix
+## Technology Stack and Version Matrix
 
-### 3.1 Runtime dependencies
+### Runtime dependencies
 
 | Package | Version | Purpose |
 |---|---|---|
@@ -113,7 +98,7 @@ The product currently supports:
 | `jspdf` | `^4.2.1` | PDF generation |
 | `jspdf-autotable` | `^5.0.7` | PDF tables |
 
-### 3.2 Development dependencies
+### Development dependencies
 
 | Package | Version | Purpose |
 |---|---|---|
@@ -131,9 +116,9 @@ The product currently supports:
 | `@types/react` | `^19.2.14` | React typings |
 | `@types/react-dom` | `^19.2.3` | React DOM typings |
 
-## 4. Key Technical Decisions
+## Key Technical Decisions
 
-### 4.1 Local-first architecture
+### Local-first architecture
 
 The application does not depend on a backend. All operational data is stored locally on the user's device. This minimizes infrastructure complexity and supports offline-first behaviour.
 
@@ -148,7 +133,7 @@ Trade-off:
 
 - no native cross-device synchronization
 
-### 4.2 IndexedDB through Dexie
+### IndexedDB through Dexie
 
 Dexie is used as the persistence layer because it provides a significantly more maintainable API than raw IndexedDB while still preserving full client-side storage capabilities.
 
@@ -159,7 +144,7 @@ Reasons for this choice:
 - live query support
 - better readability for transaction logic
 
-### 4.3 PWA delivery model
+### PWA delivery model
 
 The application is distributed as a Progressive Web App. This allows installation on Android devices through Chrome while keeping the deployment model static and simple.
 
@@ -169,7 +154,7 @@ Reasons for this choice:
 - offline capability through service worker caching
 - simple GitHub Pages deployment path
 
-### 4.4 Lazy-loaded PDF generation
+### Lazy-loaded PDF generation
 
 PDF generation libraries are loaded only when export or share is requested.
 
@@ -179,9 +164,9 @@ Reasons for this choice:
 - faster initial page load
 - lower mobile startup cost
 
-## 5. System Architecture
+## System Architecture
 
-### 5.1 High-level architecture
+### High-level architecture
 
 The system has four main layers:
 
@@ -190,7 +175,7 @@ The system has four main layers:
 3. utility modules for domain logic, export, migration and notifications
 4. local persistence through Dexie and IndexedDB
 
-### 5.2 Source structure
+### Source structure
 
 ```text
 src/
@@ -202,7 +187,7 @@ src/
   sw.ts         custom service worker entry
 ```
 
-### 5.3 Screen modules
+### Screen modules
 
 | File | Responsibility |
 |---|---|
@@ -212,9 +197,9 @@ src/
 | `ClientsPage.tsx` | shared client management |
 | `SettingsPage.tsx` | profiles, notifications, data actions |
 
-## 6. Data Storage Design
+## Data Storage Design
 
-### 6.1 Database name
+### Database name
 
 The active IndexedDB database name is:
 
@@ -222,7 +207,7 @@ The active IndexedDB database name is:
 timesheet
 ```
 
-### 6.2 Tables
+### Tables
 
 | Table | Purpose |
 |---|---|
@@ -232,14 +217,14 @@ timesheet
 | `timeEntries` | daily time blocks |
 | `weekExports` | export history |
 
-### 6.3 Important indexes
+### Important indexes
 
 | Table | Index |
 |---|---|
 | `timeEntries` | `[employeeId+date]` |
 | `weekExports` | `[employeeId+weekStart+weekEnd]` |
 
-### 6.4 Data models
+### Data models
 
 #### Employee
 
@@ -287,9 +272,9 @@ Contains:
 - export timestamp
 - export format
 
-## 7. State Management and Hooks
+## State Management and Hooks
 
-### 7.1 `useProfiles`
+### `useProfiles`
 
 Responsibilities:
 
@@ -298,7 +283,7 @@ Responsibilities:
 - active/inactive toggling
 - deletion guard for profiles with registrations
 
-### 7.2 `useActiveProfile`
+### `useActiveProfile`
 
 Responsibilities:
 
@@ -307,7 +292,7 @@ Responsibilities:
 - fallback to first active profile
 - recovery handling when stored active profile state is no longer valid
 
-### 7.3 `useClients`
+### `useClients`
 
 Responsibilities:
 
@@ -316,7 +301,7 @@ Responsibilities:
 - sorting by last usage
 - location synchronization
 
-### 7.4 `useTimeEntry`
+### `useTimeEntry`
 
 Responsibilities:
 
@@ -325,16 +310,16 @@ Responsibilities:
 - create, update and delete entry operations
 - repeat previous workday logic
 
-### 7.5 `useHorizontalSwipe`
+### `useHorizontalSwipe`
 
 Responsibilities:
 
 - lightweight pointer-based horizontal swipe detection
 - used on day and fortnight screens
 
-## 8. Feature Modules
+## Feature Modules
 
-### 8.1 Daily registration
+### Daily registration
 
 The daily screen supports:
 
@@ -345,7 +330,7 @@ The daily screen supports:
 - carry-over from previous workday
 - opening a specific day from the fortnight view and preserving that selected date
 
-### 8.2 Client management
+### Client management
 
 The client screen supports:
 
@@ -354,7 +339,7 @@ The client screen supports:
 - confirmation before destructive delete
 - client lookup and selection from a searchable input in the entry flow
 
-### 8.3 Profile management
+### Profile management
 
 The settings screen supports:
 
@@ -364,7 +349,7 @@ The settings screen supports:
 - export logo upload and default logo selection
 - visual active-profile indication through the profile switcher
 
-### 8.4 Confirmation and sheet flow
+### Confirmation and sheet flow
 
 The application uses internal confirmation dialogs instead of browser-native confirm popups.
 
@@ -377,7 +362,7 @@ This applies to:
 - data import confirmation
 - clear-all-data confirmation
 
-### 8.5 Export flow
+### Export flow
 
 The week screen supports:
 
@@ -385,13 +370,13 @@ The week screen supports:
 - Web Share API sharing where available
 - export history persistence
 
-## 9. PWA Architecture
+## PWA Architecture
 
-### 9.1 Build integration
+### Build integration
 
 PWA support is configured in `vite.config.ts` through `vite-plugin-pwa`.
 
-### 9.2 Service worker strategy
+### Service worker strategy
 
 The application uses `injectManifest` and a custom service worker entry in `src/sw.ts`.
 
@@ -401,7 +386,7 @@ Features:
 - cache-first runtime strategy for same-origin static assets
 - notification click handling
 
-### 9.3 Installability
+### Installability
 
 The application is configured for install on Android and supports GitHub Pages deployment under:
 
@@ -409,7 +394,7 @@ The application is configured for install on Android and supports GitHub Pages d
 /ch-construct-timesheet/
 ```
 
-## 10. Notifications Architecture
+## Notifications Architecture
 
 Notification support is local only.
 
@@ -424,7 +409,7 @@ Constraint:
 
 - this remains browser-limited and cannot guarantee native background scheduling semantics
 
-## 11. PDF Export Architecture
+## PDF Export Architecture
 
 `pdfExport.ts` generates the two-week export file.
 
@@ -441,9 +426,9 @@ Performance strategy:
 
 - module loaded lazily from `WeekPage`
 
-## 12. Backup, Import and Migration
+## Backup, Import and Migration
 
-### 12.1 Backup and restore
+### Backup and restore
 
 Handled through `dataTransfer.ts`.
 
@@ -454,7 +439,7 @@ Capabilities:
 - clear all local data
 - include relevant application localStorage state in backup payloads
 
-### 12.2 Rename migration
+### Rename migration
 
 Handled through `migration.ts`.
 
@@ -465,9 +450,9 @@ Capabilities:
 - delete old storage after successful migration
 - keep legacy storage intact if migration cannot safely complete
 
-## 13. Build, Quality and Deployment
+## Build, Quality and Deployment
 
-### 13.1 Scripts
+### Scripts
 
 ```bash
 npm install
@@ -477,14 +462,14 @@ npm run build
 npm run preview
 ```
 
-### 13.2 Quality gates
+### Quality gates
 
 - ESLint must pass
 - TypeScript build must pass
 - production Vite build must pass
 - documentation updates should be reviewed when functionality or architecture changes
 
-### 13.3 Deployment model
+### Deployment model
 
 The application is deployed as a static site.
 
@@ -497,7 +482,7 @@ Supported hosting examples:
 - Azure Static Web Apps
 - static nginx/Apache
 
-### 13.4 GitHub Pages support
+### GitHub Pages support
 
 The repository includes a GitHub Actions workflow for Pages deployment.
 
@@ -508,7 +493,7 @@ Important deployment conditions:
 - correct base path handling
 - service worker update behaviour awareness during release validation
 
-### 13.5 Developer Operations Reference
+### Developer Operations Reference
 
 #### Local development URL
 
@@ -560,7 +545,7 @@ Because all business data remains local to the device, backup export should be p
 - device replacement
 - manual troubleshooting steps that may clear storage
 
-## 14. Performance and Profiling
+## Performance and Profiling
 
 Primary profiling areas:
 
@@ -583,7 +568,7 @@ Recommended datasets:
 - normal dataset
 - heavy dataset with large `timeEntries` volume
 
-## 15. Constraints and Known Limitations
+## Constraints and Known Limitations
 
 - no backend synchronization
 - browser-specific notification limitations
@@ -591,7 +576,7 @@ Recommended datasets:
 - custom CSS instead of a formal design framework
 - Word export can be generated from Markdown through Pandoc, but full branded Word headers and footers benefit from a dedicated `reference.docx`
 
-## 16. Appendices
+## Appendices
 
 ### Appendix A. External dependencies
 

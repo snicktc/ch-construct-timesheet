@@ -72,16 +72,29 @@ Het script:
 - genereert DOCX-bestanden
 - gebruikt automatisch `docs/_shared/reference.docx` als dat bestand bestaat
 
+## Belangrijke bronregels
+
+Om dubbele nummering en kapotte TOC-opmaak te vermijden:
+
+- zet geen handmatige hoofdstuknummering in headings als de publicatiestraat zelf nummert
+- gebruik het coverlogo niet als gewone Markdown-figuur voor PDF-covergebruik
+- houd TOC-diepte beperkt voor publicatiedocumenten
+- laat cover, TOC en body via de template/opmaaklaag sturen
+
 ## Controle na publicatie
 
 Controleer per document:
 
 - voorblad met logo, titel, datum en versie
+- geen figuurcaption onder het coverlogo
 - inhoudstafel
+- voorblad niet opgenomen als genummerd hoofdstuk in de inhoudstafel
 - documentcontrole
 - wijzigingshistoriek
 - lopende kopteksten
 - paginanummers
+- geen dubbele hoofdstuknummering
+- geen font/encodingfouten zoals vervormde merknamen
 - geen afgebroken tabellen of verkeerd geneste titels
 
 ## Aanbevolen publicatiewerkwijze

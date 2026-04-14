@@ -3,9 +3,9 @@ to: pdf
 pdf-engine: xelatex
 standalone: true
 toc: true
-toc-depth: 3
-numbersections: true
-shift-heading-level-by: 0
+toc-depth: 2
+numbersections: false
+shift-heading-level-by: -1
 resource-path:
   - .
   - docs
@@ -18,3 +18,5 @@ variables:
   toc-title: "Inhoud"
 include-in-header:
   - docs/_shared/pandoc-header.tex
+include-before-body:
+  - docs/_shared/titlepage.tex
