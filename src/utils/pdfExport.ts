@@ -154,6 +154,8 @@ const addWeekTable = (
   startY: number,
 ) => {
   const body: Array<Array<string>> = []
+  const rowDayIndices: number[] = []
+  let dayIndex = 0
 
   for (const date of weekDates) {
     const dateKey = formatDateKey(date)
@@ -163,19 +165,37 @@ const addWeekTable = (
       body.push([
         formatShortDate(date),
         isWeekend(date) ? 'Weekend' : '—',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '—',
+        '', '', '', '', '', '', '—',
       ])
+      rowDayIndices.push(dayIndex)
+      dayIndex++
       continue
     }
 
     const dayTotal = calculateDayTotalMinutes(dateEntries)
 
+    const clientGroups = new Map<string, TimeEntry[]>()
+    for (const entry of dateEntries) {
+      const group = clientGroups.get(entry.clientName) ?? []
+      group.push(entry)
+      clientGroups.set(entry.clientName, group)
+    }
+
+    const clientTotals = new Map<string, number>()
+    for (const [clientName, clientEntries] of clientGroups) {
+      clientTotals.set(clientName, calculateDayTotalMinutes(clientEntries))
+    }
+
+    const clientLastRowIndex = new Map<string, number>()
     dateEntries.forEach((entry, index) => {
+      clientLastRowIndex.set(entry.clientName, index)
+    })
+
+    dateEntries.forEach((entry, index) => {
+      const isLastOfClient = clientLastRowIndex.get(entry.clientName) === index
+      const isLastOfDay = index === dateEntries.length - 1
+      const clientTotal = clientTotals.get(entry.clientName) ?? 0
+
       body.push([
         index === 0 ? formatShortDate(date) : '',
         entry.clientName,
@@ -184,13 +204,18 @@ const addWeekTable = (
         entry.endTime,
         entry.breakMinutes > 0 ? formatMinutesAsHours(entry.breakMinutes) : '',
         entry.isDriver,
-        index === dateEntries.length - 1 ? formatMinutesAsHours(dayTotal) : '',
+        isLastOfClient ? formatMinutesAsHours(clientTotal) : '',
+        isLastOfDay ? formatMinutesAsHours(dayTotal) : '',
       ])
+      rowDayIndices.push(dayIndex)
 
       if (entry.notes) {
-        body.push(['', `opm: ${entry.notes}`, '', '', '', '', '', ''])
+        body.push(['', `opm: ${entry.notes}`, '', '', '', '', '', '', ''])
+        rowDayIndices.push(dayIndex)
       }
     })
+
+    dayIndex++
   }
 
   const weekMinutes = weekDates.reduce((total, date) => {
@@ -200,9 +225,9 @@ const addWeekTable = (
 
   autoTable(doc, {
     startY,
-    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal']],
+    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/klant', 'Totaal/dag']],
     body,
-    foot: [['', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
+    foot: [['', '', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
     theme: 'grid',
     styles: {
       font: 'helvetica',
@@ -221,29 +246,35 @@ const addWeekTable = (
       textColor: [26, 26, 26],
       fontStyle: 'bold',
     },
-    alternateRowStyles: {
-      fillColor: [249, 249, 246],
-    },
     columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: 34 },
-      2: { cellWidth: 22 },
-      3: { cellWidth: 16 },
-      4: { cellWidth: 16 },
-      5: { cellWidth: 14 },
-      6: { cellWidth: 26 },
-      7: { cellWidth: 24, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 18 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 14 },
+      4: { cellWidth: 14 },
+      5: { cellWidth: 12 },
+      6: { cellWidth: 16 },
+      7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+      8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
-      const row = hookData.row.raw as string[] | undefined
+      if (hookData.section === 'body') {
+        const row = hookData.row.raw as string[] | undefined
+        const rowIdx = hookData.row.index
+        const dayIdx = rowDayIndices[rowIdx] ?? 0
 
-      if (row?.[1]?.startsWith('opm:')) {
-        hookData.cell.styles.fontStyle = 'italic'
-        hookData.cell.styles.textColor = [107, 114, 128]
-      }
+        if (row?.[1] === 'Weekend') {
+          hookData.cell.styles.fillColor = [242, 242, 242]
+        } else if (dayIdx % 2 === 0) {
+          hookData.cell.styles.fillColor = [255, 255, 255]
+        } else {
+          hookData.cell.styles.fillColor = [235, 242, 250]
+        }
 
-      if (row?.[1] === 'Weekend') {
-        hookData.cell.styles.fillColor = [245, 245, 246]
+        if (row?.[1]?.startsWith('opm:')) {
+          hookData.cell.styles.fontStyle = 'italic'
+          hookData.cell.styles.textColor = [107, 114, 128]
+        }
       }
     },
   })
