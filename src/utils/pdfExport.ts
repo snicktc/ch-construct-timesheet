@@ -269,6 +269,7 @@ const addWeekTable = (
     value: string
     cellX: number
     cellW: number
+    cellH: number
     startY: number
     endY: number
     isWeekend: boolean
@@ -352,6 +353,7 @@ const addWeekTable = (
           value: originalValue,
           cellX,
           cellW,
+          cellH,
           startY: cellY,
           endY: cellY + cellH,
           isWeekend: isWeekendRow,
@@ -368,14 +370,22 @@ const addWeekTable = (
   const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
 
   for (const [dayIdx, entry] of dayMergeMap) {
+    const hasMultipleRows = entry.endY - entry.startY > entry.cellH * 1.5
+
+    if (!hasMultipleRows && !entry.value) {
+      continue
+    }
+
     const fillColor: [number, number, number] = entry.isWeekend
       ? [242, 242, 242]
       : dayIdx % 2 === 0
         ? [255, 255, 255]
         : [235, 242, 250]
 
-    doc.setFillColor(...fillColor)
-    doc.rect(entry.cellX, entry.startY, entry.cellW, entry.endY - entry.startY, 'F')
+    if (hasMultipleRows) {
+      doc.setFillColor(...fillColor)
+      doc.rect(entry.cellX, entry.startY, entry.cellW, entry.endY - entry.startY, 'F')
+    }
 
     if (!entry.value) {
       continue
