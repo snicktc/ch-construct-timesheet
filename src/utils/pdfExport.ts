@@ -224,36 +224,18 @@ const addWeekTable = (
     })
 
     let rowsForDay = 0
-
-    if (isWeekendDay) {
-      rowsForDay++
-    }
-
     dateEntries.forEach((entry) => {
       rowsForDay++
       if (entry.notes) rowsForDay++
     })
 
-    if (isWeekendDay) {
-      body.push([
-        formatShortDate(date),
-        'Weekend',
-        '', '', '', '', '',
-        '',
-        formatMinutesAsHours(dayTotal),
-      ])
-      rowDayIndices.push(dayIndex)
-      rowDaySizes.push(rowsForDay)
-      rowIsWeekend.push(true)
-    }
-
     dateEntries.forEach((entry, index) => {
-      const isFirstOfWorkday = !isWeekendDay && index === 0
+      const isFirstOfDay = index === 0
       const isLastOfClient = clientLastRowIndex.get(entry.clientName) === index
       const clientTotal = clientTotals.get(entry.clientName) ?? 0
 
       body.push([
-        isFirstOfWorkday ? formatShortDate(date) : '',
+        isFirstOfDay ? formatShortDate(date) : '',
         entry.clientName,
         entry.location,
         entry.startTime,
@@ -261,7 +243,7 @@ const addWeekTable = (
         entry.breakMinutes > 0 ? formatMinutesAsHours(entry.breakMinutes) : '',
         entry.isDriver,
         isLastOfClient ? formatMinutesAsHours(clientTotal) : '',
-        isFirstOfWorkday ? formatMinutesAsHours(dayTotal) : '',
+        isFirstOfDay ? formatMinutesAsHours(dayTotal) : '',
       ])
       rowDayIndices.push(dayIndex)
       rowDaySizes.push(rowsForDay)
