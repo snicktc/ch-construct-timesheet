@@ -41,29 +41,33 @@ const DEFAULT_LOGO_PATHS: Record<string, string> = {
   vbw: 'logos/logo_VBW.png',
 }
 
-const loadLogoViaCanvas = (src: string): Promise<string> =>
+type LogoResult = { dataUrl: string; width: number; height: number }
+
+const loadLogoViaCanvas = (src: string): Promise<LogoResult> =>
   new Promise((resolve) => {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas')
-        canvas.width = img.naturalWidth || img.width
-        canvas.height = img.naturalHeight || img.height
+        const naturalWidth = img.naturalWidth || img.width
+        const naturalHeight = img.naturalHeight || img.height
+        canvas.width = naturalWidth
+        canvas.height = naturalHeight
         const ctx = canvas.getContext('2d')
 
         if (!ctx) {
-          resolve('')
+          resolve({ dataUrl: '', width: 0, height: 0 })
           return
         }
 
         ctx.drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/png'))
+        resolve({ dataUrl: canvas.toDataURL('image/png'), width: naturalWidth, height: naturalHeight })
       } catch {
-        resolve('')
+        resolve({ dataUrl: '', width: 0, height: 0 })
       }
     }
-    img.onerror = () => resolve('')
+    img.onerror = () => resolve({ dataUrl: '', width: 0, height: 0 })
     img.src = src
   })
 
@@ -112,27 +116,46 @@ const addHeader = async (
   periodEnd: Date,
 ) => {
   let logoDataUrl = employee.exportLogo || ''
+  let logoNaturalWidth = 0
+  let logoNaturalHeight = 0
 
   if (!logoDataUrl) {
     const baseUrl = import.meta.env.BASE_URL
     const logoPath = DEFAULT_LOGO_PATHS[employee.exportRecipient.trim().toLowerCase()]
 
     if (logoPath) {
-      logoDataUrl = await loadLogoViaCanvas(`${baseUrl}${logoPath}`)
+      const result = await loadLogoViaCanvas(`${baseUrl}${logoPath}`)
+      logoDataUrl = result.dataUrl
+      logoNaturalWidth = result.width
+      logoNaturalHeight = result.height
     }
   }
 
   const hasLogo = Boolean(logoDataUrl)
+  let logoDrawWidth = 0
 
   if (hasLogo) {
     try {
-      doc.addImage(logoDataUrl, detectImageFormat(logoDataUrl), 14, 10, 32, 20)
+      const MAX_LOGO_W = 40
+      const MAX_LOGO_H = 22
+
+      let drawW = MAX_LOGO_W
+      let drawH = MAX_LOGO_H
+
+      if (logoNaturalWidth > 0 && logoNaturalHeight > 0) {
+        const scale = Math.min(MAX_LOGO_W / logoNaturalWidth, MAX_LOGO_H / logoNaturalHeight)
+        drawW = logoNaturalWidth * scale
+        drawH = logoNaturalHeight * scale
+      }
+
+      logoDrawWidth = drawW
+      doc.addImage(logoDataUrl, detectImageFormat(logoDataUrl), 14, 10, drawW, drawH)
     } catch (error) {
       console.error('Failed to add export logo to PDF', error)
     }
   }
 
-  const textX = hasLogo ? 52 : 14
+  const textX = hasLogo ? 14 + logoDrawWidth + 4 : 14
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
@@ -291,48 +314,32 @@ const addWeekTable = (
         }
       }
     },
-    willDrawCell: (hookData) => {
+    didDrawCell: (hookData) => {
       if (hookData.section !== 'body' || hookData.column.index !== 8) {
         return
       }
 
       const rowIdx = hookData.row.index
       const dayIdx = rowDayIndices[rowIdx] ?? 0
-      const prevDayIdx = rowIdx > 0 ? (rowDayIndices[rowIdx - 1] ?? -1) : -1
       const nextDayIdx = rowDayIndices[rowIdx + 1] ?? -1
-      const isSameDayAsAbove = dayIdx === prevDayIdx
-      const isSameDayAsBelow = dayIdx === nextDayIdx
 
-      if (!isSameDayAsAbove && !isSameDayAsBelow) {
+      if (dayIdx !== nextDayIdx) {
         return
       }
 
-      const doc2 = hookData.doc
       const x = hookData.cell.x
-      const y = hookData.cell.y
+      const y = hookData.cell.y + hookData.cell.height
       const w = hookData.cell.width
-      const h = hookData.cell.height
 
-      const dayIdx2 = dayIdx
-      const fillColor = (hookData.row.raw as string[])?.[1] === 'Weekend'
-        ? [242, 242, 242]
-        : dayIdx2 % 2 === 0
-          ? [255, 255, 255]
-          : [235, 242, 250]
+      const fillColor: [number, number, number] = dayIdx % 2 === 0
+        ? [255, 255, 255]
+        : [235, 242, 250]
 
-      doc2.setDrawColor(fillColor[0], fillColor[1], fillColor[2])
-      doc2.setLineWidth(0.5)
+      hookData.doc.setFillColor(...fillColor)
+      hookData.doc.setDrawColor(...fillColor)
+      hookData.doc.rect(x + 0.15, y - 0.4, w - 0.3, 0.55, 'F')
 
-      if (isSameDayAsAbove) {
-        doc2.line(x, y, x + w, y)
-      }
-
-      if (isSameDayAsBelow) {
-        doc2.line(x, y + h, x + w, y + h)
-      }
-
-      doc2.setDrawColor(220, 220, 220)
-      doc2.setLineWidth(0.2)
+      hookData.doc.setDrawColor(220, 220, 220)
     },
   })
 
