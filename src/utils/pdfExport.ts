@@ -183,20 +183,23 @@ const addWeekTable = (
   const body: Array<Array<string>> = []
   const rowDayIndices: number[] = []
   const rowDaySizes: number[] = []
+  const rowIsWeekend: boolean[] = []
   let dayIndex = 0
 
   for (const date of weekDates) {
     const dateKey = formatDateKey(date)
     const dateEntries = entriesByDate.get(dateKey) ?? []
+    const isWeekendDay = isWeekend(date)
 
     if (dateEntries.length === 0) {
       body.push([
         formatShortDate(date),
-        isWeekend(date) ? 'Weekend' : '—',
-        '', '', '', '', '', '', '—',
+        isWeekendDay ? 'Weekend' : '—',
+        '', '', '', '', '', '', '',
       ])
       rowDayIndices.push(dayIndex)
       rowDaySizes.push(1)
+      rowIsWeekend.push(isWeekendDay)
       dayIndex++
       continue
     }
@@ -221,18 +224,36 @@ const addWeekTable = (
     })
 
     let rowsForDay = 0
+
+    if (isWeekendDay) {
+      rowsForDay++
+    }
+
     dateEntries.forEach((entry) => {
       rowsForDay++
       if (entry.notes) rowsForDay++
     })
 
+    if (isWeekendDay) {
+      body.push([
+        formatShortDate(date),
+        'Weekend',
+        '', '', '', '', '',
+        '',
+        formatMinutesAsHours(dayTotal),
+      ])
+      rowDayIndices.push(dayIndex)
+      rowDaySizes.push(rowsForDay)
+      rowIsWeekend.push(true)
+    }
+
     dateEntries.forEach((entry, index) => {
-      const isFirstOfDay = index === 0
+      const isFirstOfWorkday = !isWeekendDay && index === 0
       const isLastOfClient = clientLastRowIndex.get(entry.clientName) === index
       const clientTotal = clientTotals.get(entry.clientName) ?? 0
 
       body.push([
-        isFirstOfDay ? formatShortDate(date) : '',
+        isFirstOfWorkday ? formatShortDate(date) : '',
         entry.clientName,
         entry.location,
         entry.startTime,
@@ -240,15 +261,17 @@ const addWeekTable = (
         entry.breakMinutes > 0 ? formatMinutesAsHours(entry.breakMinutes) : '',
         entry.isDriver,
         isLastOfClient ? formatMinutesAsHours(clientTotal) : '',
-        isFirstOfDay ? formatMinutesAsHours(dayTotal) : '',
+        isFirstOfWorkday ? formatMinutesAsHours(dayTotal) : '',
       ])
       rowDayIndices.push(dayIndex)
       rowDaySizes.push(rowsForDay)
+      rowIsWeekend.push(isWeekendDay)
 
       if (entry.notes) {
         body.push(['', `opm: ${entry.notes}`, '', '', '', '', '', '', ''])
         rowDayIndices.push(dayIndex)
         rowDaySizes.push(rowsForDay)
+        rowIsWeekend.push(isWeekendDay)
       }
     })
 
@@ -310,8 +333,9 @@ const addWeekTable = (
         const row = hookData.row.raw as string[] | undefined
         const rowIdx = hookData.row.index
         const dayIdx = rowDayIndices[rowIdx] ?? 0
+        const isWeekendRow = rowIsWeekend[rowIdx] ?? false
 
-        if (row?.[1] === 'Weekend') {
+        if (isWeekendRow) {
           hookData.cell.styles.fillColor = [242, 242, 242]
         } else if (dayIdx % 2 === 0) {
           hookData.cell.styles.fillColor = [255, 255, 255]
@@ -338,8 +362,7 @@ const addWeekTable = (
       const cellY = hookData.cell.y
       const cellH = hookData.cell.height
 
-      const rowRaw = hookData.row.raw as string[] | undefined
-      const isWeekendRow = rowRaw?.[1] === 'Weekend'
+      const isWeekendRow = rowIsWeekend[rowIdx] ?? false
       const existing = dayMergeMap.get(dayIdx)
 
       if (!existing) {
