@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 type SheetProps = {
   title?: string
@@ -8,6 +8,23 @@ type SheetProps = {
 }
 
 export function Sheet({ title, open, onClose, children }: SheetProps) {
+  const sheetRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose, open])
+
   if (!open) {
     return null
   }
@@ -15,6 +32,7 @@ export function Sheet({ title, open, onClose, children }: SheetProps) {
   return (
     <div className="sheet-backdrop" role="presentation" onClick={onClose}>
       <section
+        ref={sheetRef}
         className="sheet"
         role="dialog"
         aria-modal="true"

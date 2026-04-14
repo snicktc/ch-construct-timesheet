@@ -205,7 +205,7 @@ Voorbeelden:
 Als je de app voor het eerst gebruikt:
 
 1. vul je naam in
-2. vul de exportbestemmeling in
+2. kies de exportbestemmeling uit de lijst (`CH Construct` of `VBW`)
 3. tik op `Start`
 
 Daarna opent het scherm `Vandaag`.
@@ -253,7 +253,7 @@ Je kunt:
 
 ## Uren toevoegen
 
-Vul een blok in met:
+Vul de uren in met:
 
 - klant
 - locatie
@@ -295,7 +295,7 @@ Als de gewenste tijd er niet tussen staat:
 
 ## Overlapwaarschuwing
 
-Als een nieuw blok overlapt met een bestaand blok op dezelfde dag:
+Als nieuwe uren overlappen met bestaande uren op dezelfde dag:
 
 1. toont de app een waarschuwing
 2. je kiest dan:
@@ -306,13 +306,13 @@ Deze waarschuwing komt uit de app zelf en niet uit een browserpopup.
 
 ## Uren bewerken of verwijderen
 
-1. tik op het potloodicoon van een bestaand blok
-2. pas het blok aan
+1. tik op het potloodicoon van bestaande uren
+2. pas de uren aan
 3. tik op `Opslaan`
 
 Om te verwijderen:
 
-1. open het blok
+1. open de uren
 2. tik op `Uren verwijderen`
 3. bevestig de actie
 
@@ -322,7 +322,7 @@ Als een dag nog leeg is, kan de app een groene kaart tonen:
 
 `Zelfde als gisteren?`
 
-Gebruik dit als je dezelfde blokken als de vorige werkdag wilt overnemen.
+Gebruik dit als je dezelfde uren als de vorige werkdag wilt overnemen.
 
 ## Weekoverzicht gebruiken
 
@@ -343,7 +343,7 @@ De app:
 
 - opent de gekozen dag
 - markeert duidelijk dat die dag uit het weekoverzicht komt
-- laat je meteen blokken toevoegen voor die dag
+- laat je meteen uren toevoegen voor die dag
 - houdt die gekozen datum actief zodat je niet onbedoeld terugvalt op vandaag
 
 ## PDF exporteren en delen
@@ -541,7 +541,7 @@ Voor dagelijks gebruik volstaat meestal dit patroon:
 
 1. open `Vandaag`
 2. kies of controleer het juiste profiel
-3. registreer je blokken
+3. registreer je uren
 4. controleer `Week`
 5. exporteer wanneer de periode compleet is
 6. maak regelmatig een backup

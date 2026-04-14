@@ -71,7 +71,7 @@ De oplossing ondersteunt een lokale, toestelgebonden workflow. De app is bedoeld
 
 - profielbeheer per werknemer
 - gedeelde klantenlijst
-- dagregistratie met meerdere blokken per dag
+- dagregistratie met meerdere uren per dag
 - week- en tweewekenoverzicht
 - PDF-export en delen
 - lokale notificatie-instellingen
@@ -124,9 +124,9 @@ Een klant is een gedeeld bedrijfs- of projectrecord dat bij registraties gekozen
 
 Een locatie is de plaats waar een prestatie uitgevoerd wordt. Locaties worden hergebruikt over klanten en registraties.
 
-### Tijdsblok
+### Urenregistratie
 
-Een tijdsblok is één registratie op één dag voor één profiel. Een dag kan meerdere blokken bevatten.
+Een urenregistratie is één registratie op één dag voor één profiel. Een dag kan meerdere registraties bevatten.
 
 ### Tweewekenperiode
 
@@ -151,10 +151,10 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 
 ### Dagregistraties
 
-- een dag mag meerdere blokken bevatten
-- het eerste blok van een dag gebruikt standaard de profielpauze
-- volgende blokken starten standaard met `0` pauze
-- een overlap tussen blokken is toegestaan, maar geeft een waarschuwing
+- een dag mag meerdere urenregistraties bevatten
+- de eerste registratie van een dag gebruikt standaard de profielpauze
+- volgende registraties starten standaard met `0` pauze
+- een overlap tussen uren is toegestaan, maar geeft een waarschuwing
 - chauffeur staat standaard op `Ja`
 - rit-credit mag elke niet-negatieve minuutwaarde bevatten
 - rit-credit toont standaard `0`, maar laat die vooringevulde waarde verdwijnen zodra de gebruiker begint te typen
@@ -188,7 +188,7 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 2. gebruiker kiest datum of gebruikt de standaarddag
 3. gebruiker kiest klant
 4. locatie wordt automatisch ingevuld
-5. gebruiker vult tijdsblok in
+5. gebruiker vult uren in
 6. gebruiker slaat op
 7. dagtotaal wordt bijgewerkt
 
@@ -197,7 +197,7 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 1. gebruiker opent een lege dag
 2. de app toont de groene kaart `Zelfde als gisteren?`
 3. gebruiker bevestigt
-4. blokken van de vorige werkdag worden gekopieerd
+4. uren van de vorige werkdag worden gekopieerd
 
 ### Dag openen vanuit weekoverzicht
 
@@ -205,7 +205,7 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 2. gebruiker tikt op een dag
 3. app opent `Vandaag` op exact die gekozen dag
 4. app markeert zichtbaar dat de dag uit het weekoverzicht komt
-5. gebruiker kan meteen een blok toevoegen of bestaande blokken bekijken
+5. gebruiker kan meteen uren toevoegen of bestaande uren bekijken
 
 ### Profiel wisselen
 
@@ -236,7 +236,7 @@ Het scherm ondersteunt de dagelijkse invoer van werkuren.
 - weekvoortgang
 - repeatkaart
 - invoerformulier
-- lijst van blokken
+- lijst van urenregistraties
 - dagtotaal
 - duidelijke visuele aanduiding van het actieve profiel
 
@@ -252,7 +252,7 @@ Het scherm ondersteunt de dagelijkse invoer van werkuren.
 
 ### Belangrijkste acties
 
-- blok toevoegen
+- uren toevoegen
 - uren bewerken
 - uren verwijderen
 - vorige werkdag kopieren
@@ -264,7 +264,7 @@ Het scherm ondersteunt de dagelijkse invoer van werkuren.
 - lege dagen tonen meteen een registratieformulier
 - klikken vanuit `Week` houdt de gekozen dag actief
 - bewerken en verwijderen gebeuren via een sheet
-- overlap tussen blokken leidt tot een bevestigingsdialoog en niet tot een harde blokkering
+- overlap tussen uren leidt tot een bevestigingsdialoog en niet tot een harde blokkering
 
 ## Week
 
@@ -282,7 +282,7 @@ Het scherm geeft een overzicht van 2 weken en ondersteunt export.
 
 ### Wat de gebruiker ziet
 
-- twee blokken van elk zeven dagen
+- twee perioden van elk zeven dagen
 - totalen per dag
 - staten voor lege werkdagen en weekends
 - exportknoppen
@@ -368,7 +368,7 @@ Registraties vormen de kern van de oplossing en bepalen zowel dagtotalen als exp
 ### Tijdsvalidatie
 
 - eindtijd moet later zijn dan starttijd
-- overlap met bestaand blok geeft waarschuwing, geen harde blokkering
+- overlap met bestaande uren geeft waarschuwing, geen harde blokkering
 
 ### Verwijderregels
 
@@ -381,10 +381,10 @@ De app gebruikt klantgerichte bevestigingsdialogen voor:
 
 - verwijderen van klant
 - verwijderen van profiel
-- verwijderen van tijdsblok
+- verwijderen van uren
 - import van data
 - wissen van alle data
-- overlapwaarschuwing bij tijdsblokken
+- overlapwaarschuwing bij uren
 - de app gebruikt geen browser-native technische meldtekst voor deze bevestigingen
 
 ## Functionele exportbeschrijving

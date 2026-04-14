@@ -76,6 +76,8 @@ function App() {
   return (
     <main className="app-shell">
       <div className="app-container">
+        {loading ? <section className="panel muted-text">Laden...</section> : null}
+
         {showWelcome ? (
           <>
             <header className="app-header">

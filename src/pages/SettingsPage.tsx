@@ -585,7 +585,7 @@ export function SettingsPage({
                 Test notificatie
               </button>
             </div>
-            <span className="muted-text">Status: {notificationPermission}</span>
+            <span className="muted-text">Status: {notificationPermission === 'granted' ? 'Toegestaan' : notificationPermission === 'denied' ? 'Geweigerd' : notificationPermission === 'default' ? 'Niet ingesteld' : 'Niet ondersteund'}</span>
           </div>
 
           <div className="field">

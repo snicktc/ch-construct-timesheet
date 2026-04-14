@@ -178,10 +178,12 @@ export function WeekPage({
       return
     }
 
+    const duration = exportError ? 6000 : 4000
+
     const timeoutId = window.setTimeout(() => {
       setExportError('')
       setExportSuccess('')
-    }, 3000)
+    }, duration)
 
     return () => window.clearTimeout(timeoutId)
   }, [exportError, exportSuccess])
@@ -228,7 +230,7 @@ export function WeekPage({
                         {entry.notes ? <em className="week-entry-notes">{entry.notes}</em> : null}
                       </div>
                     ))}
-                    <p className="muted-text">Tik om te bekijken of een blok toe te voegen</p>
+                    <p className="muted-text">Tik om te bekijken of uren toe te voegen</p>
                   </div>
                 )}
               </button>
@@ -335,10 +337,10 @@ export function WeekPage({
           </div>
 
           <div className="date-nav" aria-label="Periode navigatie">
-            <button type="button" className="secondary-button" onClick={() => setAnchorDate((current) => addDays(current, -14))}>
+            <button type="button" className="secondary-button" aria-label="Vorige 2 weken" onClick={() => setAnchorDate((current) => addDays(current, -14))}>
               ◀
             </button>
-            <button type="button" className="secondary-button" onClick={() => setAnchorDate((current) => addDays(current, 14))}>
+            <button type="button" className="secondary-button" aria-label="Volgende 2 weken" onClick={() => setAnchorDate((current) => addDays(current, 14))}>
               ▶
             </button>
           </div>

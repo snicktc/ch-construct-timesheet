@@ -15,7 +15,7 @@ const getRepeatSummary = (entries: TimeEntry[]) => {
     clientLabel:
       entries.length === 1
         ? `${first.clientName} - ${first.location}`
-        : `${first.clientName} + ${entries.length - 1} extra blok${entries.length > 2 ? 'ken' : ''}`,
+        : `${first.clientName} + ${entries.length - 1} extra`,
     timeLabel: `${first.startTime}-${last.endTime}`,
     metaLabel: `pauze ${entries.reduce((total, entry) => total + entry.breakMinutes, 0)}m · ${formatMinutesAsHours(calculateDayTotalMinutes(entries))}`,
     driverLabel: `chauffeur: ${first.isDriver.toLowerCase()}`,

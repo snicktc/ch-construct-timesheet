@@ -281,7 +281,7 @@ export function EntryForm({
       <ConfirmDialog
         open={confirmOverlapOpen}
         title="Uren overlappen"
-        message="Deze uren overlappen met een bestaand blok op dezelfde dag. Wil je dit blok toch opslaan?"
+        message="Deze uren overlappen met bestaande uren op dezelfde dag. Wil je toch opslaan?"
         confirmLabel="Ja, toch opslaan"
         cancelLabel="Nee, aanpassen"
         onCancel={() => {

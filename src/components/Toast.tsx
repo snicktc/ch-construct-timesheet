@@ -4,5 +4,5 @@ type ToastProps = {
 }
 
 export function Toast({ message, tone }: ToastProps) {
-  return <div className={`toast toast-${tone}`}>{message}</div>
+  return <div className={`toast toast-${tone}`} role={tone === 'error' ? 'alert' : 'status'}>{message}</div>
 }

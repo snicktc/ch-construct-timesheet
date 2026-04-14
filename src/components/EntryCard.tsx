@@ -13,7 +13,7 @@ export function EntryCard({ entry, onEdit }: EntryCardProps) {
         <strong>
           {entry.clientName} - {entry.location}
         </strong>
-        <button type="button" className="entry-edit-button" onClick={onEdit}>
+        <button type="button" className="entry-edit-button" onClick={onEdit} aria-label="Bewerk registratie">
           ✎
         </button>
       </div>

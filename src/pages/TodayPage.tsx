@@ -107,10 +107,12 @@ export function TodayPage({
       return
     }
 
+    const duration = errorMessage ? 6000 : 4000
+
     const timeoutId = window.setTimeout(() => {
       setFeedbackMessage('')
       setErrorMessage('')
-    }, 3000)
+    }, duration)
 
     return () => window.clearTimeout(timeoutId)
   }, [errorMessage, feedbackMessage])
@@ -173,7 +175,7 @@ export function TodayPage({
     notes?: string
   }) => {
     await createEntry({ ...input, date: selectedDateKey })
-    setFeedbackMessage('Blok opgeslagen.')
+    setFeedbackMessage('Uren opgeslagen.')
     setIsFormOpen(false)
   }
 
@@ -194,7 +196,7 @@ export function TodayPage({
     }
 
     await updateEntry(editingEntry.id, input)
-    setFeedbackMessage('Blok bijgewerkt.')
+    setFeedbackMessage('Uren bijgewerkt.')
     setEditingEntry(null)
     setIsFormOpen(false)
   }
@@ -205,7 +207,7 @@ export function TodayPage({
     }
 
     await deleteEntry(editingEntry.id)
-    setFeedbackMessage('Blok verwijderd.')
+    setFeedbackMessage('Uren verwijderd.')
     setEditingEntry(null)
     setIsFormOpen(false)
   }
@@ -229,10 +231,10 @@ export function TodayPage({
           </div>
 
           <div className="date-nav" aria-label="Datum navigatie">
-            <button type="button" className="secondary-button" onClick={() => setSelectedDate((current) => addDays(current, -1))}>
+            <button type="button" className="secondary-button" aria-label="Vorige dag" onClick={() => setSelectedDate((current) => addDays(current, -1))}>
               ◀
             </button>
-            <button type="button" className="secondary-button" onClick={() => setSelectedDate((current) => addDays(current, 1))}>
+            <button type="button" className="secondary-button" aria-label="Volgende dag" onClick={() => setSelectedDate((current) => addDays(current, 1))}>
               ▶
             </button>
           </div>
@@ -254,7 +256,7 @@ export function TodayPage({
 
       {shouldShowInlineEmptyForm ? (
         <section className={`panel${openedFromWeek ? ' is-highlighted-panel' : ''}`} ref={daySectionRef}>
-          {openedFromWeek ? <p className="context-note">Voeg hieronder meteen blokken toe voor deze dag.</p> : null}
+          {openedFromWeek ? <p className="context-note">Voeg hieronder meteen uren toe voor deze dag.</p> : null}
           <EntryForm
             employee={activeEmployee}
             clients={clients}
@@ -297,15 +299,15 @@ export function TodayPage({
 
       <section className={`panel${openedFromWeek && !shouldShowInlineEmptyForm ? ' is-highlighted-panel' : ''}`} ref={!shouldShowInlineEmptyForm ? daySectionRef : undefined}>
         <div className="section-heading">
-          <h2>Registraties vandaag</h2>
+          <h2>{isSameDate(selectedDate, new Date()) ? 'Registraties vandaag' : `Registraties ${getDayLabel(selectedDate).toLowerCase()}`}</h2>
           <span className="muted-text">{selectedDateKey}</span>
         </div>
 
         {!loading && entries.length === 0 ? (
           <p className="muted-text">
             {isSameDate(selectedDate, new Date())
-              ? 'Nog geen blokken vandaag. Gebruik de groene kaart of voeg straks het formulier toe.'
-              : 'Nog geen blokken voor deze dag.'}
+              ? 'Nog geen uren vandaag. Gebruik de groene kaart of vul het formulier hierboven in.'
+              : 'Nog geen uren voor deze dag.'}
           </p>
         ) : null}
 

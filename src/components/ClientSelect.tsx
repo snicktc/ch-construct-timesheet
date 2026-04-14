@@ -68,7 +68,7 @@ export function ClientSelect({ clients, value, onChange, onCreateNew, focusTrigg
           <option key={client.id} value={client.name} />
         ))}
       </datalist>
-      <div className="autocomplete-list">
+      {isEditing ? <div className="autocomplete-list">
         {filteredClients.map((client) => (
           <button
             key={client.id}
@@ -90,7 +90,7 @@ export function ClientSelect({ clients, value, onChange, onCreateNew, focusTrigg
         <button type="button" className="autocomplete-item create-new" onMouseDown={(event) => event.preventDefault()} onClick={onCreateNew}>
           + Nieuwe klant
         </button>
-      </div>
+      </div> : null}
     </div>
   )
 }
