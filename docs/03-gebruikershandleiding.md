@@ -251,7 +251,7 @@ Je kunt:
 - de datum veranderen met de pijlen
 - links en rechts swipen om van dag te wisselen
 
-## Registratie maken
+## Uren toevoegen
 
 Vul een blok in met:
 
@@ -304,7 +304,7 @@ Als een nieuw blok overlapt met een bestaand blok op dezelfde dag:
 
 Deze waarschuwing komt uit de app zelf en niet uit een browserpopup.
 
-## Blok bewerken of verwijderen
+## Uren bewerken of verwijderen
 
 1. tik op het potloodicoon van een bestaand blok
 2. pas het blok aan
@@ -313,7 +313,7 @@ Deze waarschuwing komt uit de app zelf en niet uit een browserpopup.
 Om te verwijderen:
 
 1. open het blok
-2. tik op `Verwijder blok`
+2. tik op `Uren verwijderen`
 3. bevestig de actie
 
 ## Zelfde als gisteren

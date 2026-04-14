@@ -264,8 +264,8 @@ export function EntryForm({
     <section className="entry-form-panel">
       <ConfirmDialog
         open={confirmDeleteOpen}
-        title="Blok verwijderen"
-        message="Weet je zeker dat je dit tijdsblok wilt verwijderen?"
+        title="Uren verwijderen"
+        message="Weet je zeker dat je deze uren wilt verwijderen?"
         confirmLabel="Ja, verwijder"
         cancelLabel="Nee, bewaren"
         tone="danger"
@@ -298,10 +298,7 @@ export function EntryForm({
       />
 
       <div className="section-heading">
-        <h2>{existingEntry ? 'Blok bewerken' : 'Blok toevoegen'}</h2>
-        <button type="button" className="secondary-button" onClick={onCancel}>
-          Terug
-        </button>
+        <h2>{existingEntry ? 'Uren bewerken' : 'Uren toevoegen'}</h2>
       </div>
 
       <form className="entry-form" onSubmit={handleSubmit}>
@@ -504,7 +501,7 @@ export function EntryForm({
           </button>
           {onDelete ? (
             <button type="button" className="danger-button" onClick={() => setConfirmDeleteOpen(true)} disabled={isSaving || isDeleting}>
-              {isDeleting ? 'Verwijderen...' : 'Verwijder blok'}
+              {isDeleting ? 'Verwijderen...' : 'Uren verwijderen'}
             </button>
           ) : null}
         </div>

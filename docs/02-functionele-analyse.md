@@ -247,14 +247,14 @@ Het scherm ondersteunt de dagelijkse invoer van werkuren.
 - pijlen om van dag te wisselen
 - weekvoortgang met bolletjes
 - groene kaart `Zelfde als gisteren?` bij een lege dag
-- registratiekaarten met tijden en locaties
+- registratiekaarten met uren en locaties
 - contextlabel wanneer een dag vanuit `Week` werd geopend
 
 ### Belangrijkste acties
 
 - blok toevoegen
-- blok bewerken
-- blok verwijderen
+- uren bewerken
+- uren verwijderen
 - vorige werkdag kopieren
 - datum wisselen
 - klant zoeken vanuit een leeg zoekveld ondanks een voorgeselecteerde klant

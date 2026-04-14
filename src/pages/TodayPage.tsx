@@ -273,7 +273,7 @@ export function TodayPage({
           setIsFormOpen(false)
           setEditingEntry(null)
         }}
-        title={editingEntry ? 'Blok bewerken' : 'Blok toevoegen'}
+        title={editingEntry ? 'Uren bewerken' : 'Uren toevoegen'}
       >
         <EntryForm
           employee={activeEmployee}
@@ -327,7 +327,7 @@ export function TodayPage({
             setIsFormOpen(true)
           }}
         >
-          + Blok toevoegen voor deze dag
+          + Uren toevoegen voor deze dag
         </button>
 
         <div className="day-total-card">
