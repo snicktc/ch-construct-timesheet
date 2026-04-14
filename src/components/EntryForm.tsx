@@ -19,6 +19,7 @@ type EntryFormProps = {
   employee: Employee
   clients: Client[]
   dayEntries: TimeEntry[]
+  focusClientTrigger?: number
   existingEntry?: TimeEntry
   suggestedStartTime?: string
   defaultBreakMinutes?: number
@@ -49,6 +50,7 @@ export function EntryForm({
   employee,
   clients,
   dayEntries,
+  focusClientTrigger = 0,
   existingEntry,
   suggestedStartTime,
   defaultBreakMinutes,
@@ -307,6 +309,7 @@ export function EntryForm({
           <ClientSelect
             clients={clients}
             value={clientId}
+            focusTrigger={focusClientTrigger}
             onChange={(nextClientId) => {
               setClientId(nextClientId)
               const client = clients.find((item) => item.id === nextClientId)

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Client } from '../db/database'
 
@@ -7,11 +7,13 @@ type ClientSelectProps = {
   value: number | null
   onChange: (clientId: number) => void
   onCreateNew: () => void
+  focusTrigger?: number
 }
 
-export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSelectProps) {
+export function ClientSelect({ clients, value, onChange, onCreateNew, focusTrigger = 0 }: ClientSelectProps) {
   const [query, setQuery] = useState(() => clients.find((client) => client.id === value)?.name ?? '')
   const [isEditing, setIsEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   const selectedClientName = clients.find((client) => client.id === value)?.name ?? ''
 
@@ -35,9 +37,18 @@ export function ClientSelect({ clients, value, onChange, onCreateNew }: ClientSe
     }
   }
 
+  useEffect(() => {
+    if (focusTrigger === 0) {
+      return
+    }
+
+    inputRef.current?.focus()
+  }, [focusTrigger])
+
   return (
     <div className="client-select-row">
       <input
+        ref={inputRef}
         className="select-input"
         list="client-options"
         value={isEditing ? query : selectedClientName}

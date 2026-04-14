@@ -50,6 +50,7 @@ export function TodayPage({
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set())
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null)
+  const [focusClientTrigger, setFocusClientTrigger] = useState(0)
   const daySectionRef = useRef<HTMLElement | null>(null)
 
   const selectedDateKey = formatDateKey(selectedDate)
@@ -258,6 +259,7 @@ export function TodayPage({
             employee={activeEmployee}
             clients={clients}
             dayEntries={entries}
+            focusClientTrigger={focusClientTrigger}
             suggestedStartTime={suggestedStartTime}
             defaultBreakMinutes={defaultBreakMinutes}
             onSubmit={handleCreateEntry}
@@ -275,13 +277,14 @@ export function TodayPage({
         }}
         title={editingEntry ? 'Uren bewerken' : 'Uren toevoegen'}
       >
-        <EntryForm
-          employee={activeEmployee}
-          clients={clients}
-          dayEntries={entries}
-          existingEntry={editingEntry ?? undefined}
-          suggestedStartTime={suggestedStartTime}
-          defaultBreakMinutes={defaultBreakMinutes}
+          <EntryForm
+            employee={activeEmployee}
+            clients={clients}
+            dayEntries={entries}
+            focusClientTrigger={focusClientTrigger}
+            existingEntry={editingEntry ?? undefined}
+            suggestedStartTime={suggestedStartTime}
+            defaultBreakMinutes={defaultBreakMinutes}
           onSubmit={editingEntry ? handleUpdateEntry : handleCreateEntry}
           onDelete={editingEntry ? handleDeleteEntry : undefined}
           onCreateClient={handleCreateClient}
@@ -324,6 +327,14 @@ export function TodayPage({
           className="add-entry-button"
           onClick={() => {
             setEditingEntry(null)
+
+            if (shouldShowInlineEmptyForm) {
+              daySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              setFocusClientTrigger((current) => current + 1)
+              return
+            }
+
+            setFocusClientTrigger((current) => current + 1)
             setIsFormOpen(true)
           }}
         >
