@@ -100,12 +100,17 @@ function App() {
 
                 <div className="field">
                   <label htmlFor="profile-export-recipient">Export naar</label>
-                  <input
+                  <select
                     id="profile-export-recipient"
                     value={exportRecipient}
                     onChange={(event) => setExportRecipient(event.target.value)}
-                    placeholder="CH Construct"
-                  />
+                  >
+                    <option value="" disabled>
+                      Kies een bestemmeling
+                    </option>
+                    <option value="CH Construct">CH Construct</option>
+                    <option value="VBW">VBW</option>
+                  </select>
                 </div>
 
                 {errorMessage ? <Toast message={errorMessage} tone="error" /> : null}
