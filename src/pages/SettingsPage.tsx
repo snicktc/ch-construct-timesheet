@@ -705,7 +705,18 @@ export function SettingsPage({
         />
       </section>
 
-      <section className="panel muted-text">Versie 1.0.0</section>
+      <section className="panel muted-text">
+        <div>Versie 1.0.0</div>
+        <div style={{ fontSize: '0.85em', marginTop: '0.25rem' }}>
+          Laatste update: {new Date(__BUILD_TIMESTAMP__).toLocaleString('nl-NL', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </div>
+      </section>
     </section>
   )
 }

@@ -6,6 +6,9 @@ const githubPagesBase = '/ch-construct-timesheet/'
 
 export default defineConfig({
   base: githubPagesBase,
+  define: {
+    __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({
