@@ -101,7 +101,7 @@ export function useTimeEntry(employeeId: number | null, date: string) {
   const createEntry = async (input: SaveTimeEntryInput) => {
     const currentDayCount = entries.length
 
-    const { entryId, clientId } = await db.transaction('rw', db.timeEntries, db.locations, async () => {
+    const { entryId, clientId } = await db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
       const client = await db.clients.get(input.clientId)
 
       if (!client) {
@@ -131,7 +131,7 @@ export function useTimeEntry(employeeId: number | null, date: string) {
   }
 
   const updateEntry = async (id: number, changes: Partial<TimeEntry>) => {
-    const clientIdToUpdate = await db.transaction('rw', db.timeEntries, db.locations, async () => {
+    const clientIdToUpdate = await db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
       const existingEntry = await db.timeEntries.get(id)
 
       if (!existingEntry) {
