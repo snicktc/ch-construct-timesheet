@@ -62,50 +62,29 @@ export function useActiveProfile() {
     }
   }, [])
 
-  // Compute active employee ID based on requested ID and available profiles
+  // Set active employee ID directly from requested ID (trust the caller)
   useEffect(() => {
-    console.log('[useActiveProfile] ========== COMPUTING ACTIVE EMPLOYEE ID ==========')
-    console.log('[useActiveProfile] State:', { 
-      loading, 
-      profilesCount: profiles.length, 
-      requestedActiveEmployeeId,
-      profileIds: profiles.map(p => p.id),
-      currentActiveEmployeeId: activeEmployeeId
-    })
+    console.log('[useActiveProfile] ========== UPDATING ACTIVE EMPLOYEE ID ==========')
+    console.log('[useActiveProfile] requestedActiveEmployeeId:', requestedActiveEmployeeId)
     
-    if (loading) {
-      console.log('[useActiveProfile] ❌ Still loading, skipping')
-      return
-    }
-
-    if (profiles.length === 0) {
-      console.log('[useActiveProfile] ❌ No active profiles available')
-      setActiveEmployeeIdInternal(null)
-      return
-    }
-
-    // If a profile was explicitly requested, use it (trust the request, validate later)
+    // If a profile was explicitly requested, use it immediately (no validation needed)
     if (requestedActiveEmployeeId !== null) {
-      console.log('[useActiveProfile] 🔍 Requested profile ID:', requestedActiveEmployeeId)
-      
-      const matchingProfile = profiles.find((profile) => profile.id === requestedActiveEmployeeId)
-      console.log('[useActiveProfile] Match result:', matchingProfile ? `Found: ${matchingProfile.name}` : 'NOT FOUND')
-      
-      if (matchingProfile) {
-        console.log('[useActiveProfile] ✅ SETTING activeEmployeeId to:', requestedActiveEmployeeId)
-        setActiveEmployeeIdInternal(requestedActiveEmployeeId)
-      } else {
-        console.log('[useActiveProfile] ⚠️  Requested profile not in active list')
-        setActiveEmployeeIdInternal(null)
-      }
+      console.log('[useActiveProfile] ✅ Setting activeEmployeeId to requested:', requestedActiveEmployeeId)
+      setActiveEmployeeIdInternal(requestedActiveEmployeeId)
       return
     }
 
-    // No profile requested yet - use first available as default
-    const fallback = profiles[0]?.id ?? null
-    console.log('[useActiveProfile] 📌 No request, defaulting to first profile:', fallback)
-    setActiveEmployeeIdInternal(fallback)
-    console.log('[useActiveProfile] ===================================================')
+    // No profile requested - only fallback if we have profiles loaded
+    if (!loading && profiles.length > 0) {
+      const fallback = profiles[0]?.id ?? null
+      console.log('[useActiveProfile] 📌 No request, defaulting to first profile:', fallback)
+      setActiveEmployeeIdInternal(fallback)
+      return
+    }
+
+    // Still loading or no profiles available
+    console.log('[useActiveProfile] ⏳ Waiting for profiles or no profiles available')
+    setActiveEmployeeIdInternal(null)
   }, [loading, profiles, requestedActiveEmployeeId])
 
   useEffect(() => {
