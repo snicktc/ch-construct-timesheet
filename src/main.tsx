@@ -3,12 +3,15 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
+import { ErrorBoundary } from './ErrorBoundary'
 import { migrateLegacyTimesheetData } from './utils/migration'
 
 function renderApp() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>,
   )
 }
