@@ -245,12 +245,6 @@ export function TodayPage({
     setEditingEntry(null)
   }, [])
 
-  const handleOpenNewEntry = useCallback(() => {
-    setIsFormOpen(true)
-    setEditingEntry(null)
-    setFocusClientTrigger((current) => current + 1)
-  }, [])
-
   const handleEditEntry = useCallback(
     (entry: TimeEntry) => {
       setEditingEntry(entry)
