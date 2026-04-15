@@ -57,7 +57,10 @@ export function useActiveProfile() {
   }, [])
 
   const activeEmployeeId = useMemo(() => {
+    console.log('[useActiveProfile] Computing activeEmployeeId:', { loading, profilesCount: profiles.length, requestedActiveEmployeeId })
+    
     if (loading || profiles.length === 0) {
+      console.log('[useActiveProfile] Returning null (loading or no profiles)')
       return null
     }
 
@@ -65,11 +68,16 @@ export function useActiveProfile() {
       requestedActiveEmployeeId !== null &&
       profiles.some((profile) => profile.id === requestedActiveEmployeeId)
 
+    console.log('[useActiveProfile] currentIsValid:', currentIsValid)
+
     if (currentIsValid) {
+      console.log('[useActiveProfile] Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
       return requestedActiveEmployeeId
     }
 
-    return profiles[0].id ?? null
+    const fallback = profiles[0].id ?? null
+    console.log('[useActiveProfile] Falling back to first profile:', fallback)
+    return fallback
   }, [loading, profiles, requestedActiveEmployeeId])
 
   useEffect(() => {
@@ -84,6 +92,9 @@ export function useActiveProfile() {
   const activeEmployee = useMemo(() => profiles.find((profile) => profile.id === activeEmployeeId) ?? null, [activeEmployeeId, profiles])
 
   const setActiveEmployeeId = (employeeId: number) => {
+    console.log('[useActiveProfile] setActiveEmployeeId called with:', employeeId)
+    console.log('[useActiveProfile] Current profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
+    console.log('[useActiveProfile] Current requestedActiveEmployeeId:', requestedActiveEmployeeId)
     setActiveEmployeeIdState(employeeId)
   }
 
