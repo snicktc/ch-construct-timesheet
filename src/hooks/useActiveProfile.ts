@@ -32,6 +32,7 @@ export function useActiveProfile() {
   const [requestedActiveEmployeeId, setActiveEmployeeIdState] = useState<number | null>(() =>
     readStoredActiveProfileId(),
   )
+  const [activeEmployeeId, setActiveEmployeeIdInternal] = useState<number | null>(null)
 
   useEffect(() => {
     const subscription = liveQuery(async () => {
@@ -56,7 +57,8 @@ export function useActiveProfile() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const activeEmployeeId = useMemo(() => {
+  // Compute active employee ID based on requested ID and available profiles
+  useEffect(() => {
     console.log('[useActiveProfile] Computing activeEmployeeId:', { 
       loading, 
       profilesCount: profiles.length, 
@@ -65,13 +67,14 @@ export function useActiveProfile() {
     })
     
     if (loading) {
-      console.log('[useActiveProfile] Returning null (still loading)')
-      return null
+      console.log('[useActiveProfile] Still loading, keeping current state')
+      return
     }
 
     if (profiles.length === 0) {
-      console.log('[useActiveProfile] Returning null (no active profiles)')
-      return null
+      console.log('[useActiveProfile] No active profiles, setting to null')
+      setActiveEmployeeIdInternal(null)
+      return
     }
 
     // If a profile was explicitly requested, use it if it exists in active profiles
@@ -80,19 +83,21 @@ export function useActiveProfile() {
       console.log('[useActiveProfile] Looking for requested profile:', requestedActiveEmployeeId, 'Found:', matchingProfile?.name)
       
       if (matchingProfile) {
-        console.log('[useActiveProfile] ✓ Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
-        return requestedActiveEmployeeId
+        console.log('[useActiveProfile] ✓ Setting activeEmployeeId to:', requestedActiveEmployeeId)
+        setActiveEmployeeIdInternal(requestedActiveEmployeeId)
+        return
       }
       
       // Requested profile not found in active profiles - could be inactive
-      console.log('[useActiveProfile] ✗ Requested profile not in active list, returning null')
-      return null
+      console.log('[useActiveProfile] ✗ Requested profile not in active list, setting to null')
+      setActiveEmployeeIdInternal(null)
+      return
     }
 
     // No profile requested yet - use first available as default
     const fallback = profiles[0]?.id ?? null
     console.log('[useActiveProfile] No profile requested, using first active profile:', fallback)
-    return fallback
+    setActiveEmployeeIdInternal(fallback)
   }, [loading, profiles, requestedActiveEmployeeId])
 
   useEffect(() => {
