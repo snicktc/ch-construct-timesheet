@@ -13,6 +13,15 @@ const getRepeatSummary = (entries: TimeEntry[]) => {
   const first = entries[0]
   const last = entries[entries.length - 1]
 
+  if (!first || !last) {
+    return {
+      clientLabel: 'Geen entries',
+      timeLabel: '-',
+      metaLabel: '-',
+      driverLabel: '-',
+    }
+  }
+
   return {
     clientLabel:
       entries.length === 1

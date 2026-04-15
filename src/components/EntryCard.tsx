@@ -13,7 +13,7 @@ function EntryCardComponent({ entry, onEdit }: EntryCardProps) {
     <article className="entry-card">
       <div className="entry-card-header">
         <strong>
-          {entry.clientName} - {entry.location}
+          {entry.clientName || 'Onbekend'} - {entry.location || 'Geen locatie'}
         </strong>
         <button type="button" className="entry-edit-button" onClick={onEdit} aria-label="Bewerk registratie">
           ✎
