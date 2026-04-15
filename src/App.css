@@ -641,6 +641,15 @@
   background: #fff;
 }
 
+.client-card.is-inactive {
+  opacity: 0.6;
+  background: #f5f5f5;
+}
+
+.client-card.is-inactive strong {
+  color: #6b7280;
+}
+
 .client-card-actions .secondary-button,
 .client-card-actions .danger-button {
   min-width: 110px;

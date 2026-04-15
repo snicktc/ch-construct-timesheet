@@ -65,6 +65,7 @@ export function SettingsPage({
   const [successMessage, setSuccessMessage] = useState('')
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [profilePendingDelete, setProfilePendingDelete] = useState<Employee | null>(null)
+  const [profilePendingToggle, setProfilePendingToggle] = useState<Employee | null>(null)
   const [pendingImportText, setPendingImportText] = useState<string | null>(null)
   const [confirmClearAllData, setConfirmClearAllData] = useState(false)
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(() =>
@@ -170,8 +171,15 @@ export function SettingsPage({
         return
       }
 
+      // Als actief → inactief: toon bevestiging
+      if (profile.isActive) {
+        setProfilePendingToggle(profile)
+        return
+      }
+
+      // Als inactief → actief: direct uitvoeren
       try {
-        await setProfileActiveState(profile.id, !profile.isActive)
+        await setProfileActiveState(profile.id, true)
         setSuccessMessage('Profielstatus bijgewerkt.')
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : 'Profielstatus wijzigen mislukt.')
@@ -179,6 +187,21 @@ export function SettingsPage({
     },
     [setProfileActiveState],
   )
+
+  const confirmToggleInactive = useCallback(async () => {
+    if (!profilePendingToggle?.id) {
+      return
+    }
+
+    try {
+      await setProfileActiveState(profilePendingToggle.id, false)
+      setSuccessMessage('Profielstatus bijgewerkt.')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Profielstatus wijzigen mislukt.')
+    } finally {
+      setProfilePendingToggle(null)
+    }
+  }, [profilePendingToggle, setProfileActiveState])
 
   const handleDelete = useCallback(
     async (profile: Employee) => {
@@ -319,6 +342,17 @@ export function SettingsPage({
             void handleDelete(profile)
           }
         }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(profilePendingToggle)}
+        title="Profiel inactief maken"
+        message={profilePendingToggle ? `${profilePendingToggle.name} wordt inactief gemaakt. Je kunt het later weer activeren.` : ''}
+        confirmLabel="Ja, maak inactief"
+        cancelLabel="Annuleer"
+        tone="default"
+        onCancel={() => setProfilePendingToggle(null)}
+        onConfirm={() => void confirmToggleInactive()}
       />
 
       <ConfirmDialog
@@ -531,7 +565,7 @@ export function SettingsPage({
 
         <div className="client-list">
           {profiles.map((profile) => (
-            <article key={profile.id} className="client-card">
+            <article key={profile.id} className={`client-card${!profile.isActive ? ' is-inactive' : ''}`}>
               <div>
                 <strong>{profile.name}</strong>
                 <p className="muted-text">Export naar: {profile.exportRecipient}</p>
@@ -557,7 +591,7 @@ export function SettingsPage({
                   className="secondary-button"
                   onClick={() => void handleToggleActive(profile)}
                 >
-                  {profile.isActive ? 'Inactief' : 'Actief'}
+                  {profile.isActive ? 'Zet op inactief' : 'Zet op actief'}
                 </button>
                 <button type="button" className="danger-button" onClick={() => setProfilePendingDelete(profile)}>
                   Verwijder
