@@ -23,6 +23,7 @@ function App() {
   const [highlightRepeatCard, setHighlightRepeatCard] = useState(false)
   const [highlightExportPrompt, setHighlightExportPrompt] = useState(false)
   const [openedFromWeek, setOpenedFromWeek] = useState(false)
+  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -144,12 +145,36 @@ function App() {
                     key={profile.id}
                     type="button"
                     className="profile-chip"
-                    onClick={() => profile.id && setActiveEmployeeId(profile.id)}
+                    onClick={() => {
+                      const debugMsg = `DEBUG: Klik op profiel\nID: ${profile.id}\nNaam: ${profile.name}\nActiveProfiles count: ${activeProfiles.length}\nCurrent activeEmployeeId: ${activeEmployeeId}`
+                      setDebugInfo(debugMsg)
+                      
+                      if (profile.id) {
+                        setActiveEmployeeId(profile.id)
+                      } else {
+                        setDebugInfo(prev => prev + '\n\nERROR: profile.id is undefined!')
+                      }
+                    }}
                   >
                     {profile.name} · {profile.exportRecipient}
                   </button>
                 ))}
               </div>
+              
+              {debugInfo ? (
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  background: '#fff3cd', 
+                  border: '1px solid #ffc107',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'monospace'
+                }}>
+                  {debugInfo}
+                </div>
+              ) : null}
 
               <div className="button-row top-gap">
                 <button type="button" className="secondary-button" onClick={() => setActiveTab('settings')}>
