@@ -13,13 +13,7 @@ import { runNotificationChecks } from './utils/notifications'
 
 function App() {
   const { profiles, activeProfiles, loading, createProfile } = useProfiles()
-  const { 
-    activeEmployee, 
-    activeEmployeeId, 
-    setActiveEmployeeId,
-    activeProfiles: activeProfilesFromHook,
-    loading: activeProfileLoading
-  } = useActiveProfile()
+  const { activeEmployee, activeEmployeeId, setActiveEmployeeId } = useActiveProfile()
   const [activeTab, setActiveTab] = useState<TabId>('today')
   const [name, setName] = useState('')
   const [exportRecipient, setExportRecipient] = useState('')
@@ -29,7 +23,6 @@ function App() {
   const [highlightRepeatCard, setHighlightRepeatCard] = useState(false)
   const [highlightExportPrompt, setHighlightExportPrompt] = useState(false)
   const [openedFromWeek, setOpenedFromWeek] = useState(false)
-  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -151,53 +144,12 @@ function App() {
                     key={profile.id}
                     type="button"
                     className="profile-chip"
-                    onClick={() => {
-                      const debugMsg = `DEBUG: Klik op profiel
-ID: ${profile.id}
-Type: ${typeof profile.id}
-Naam: ${profile.name}
-
-SOURCE 1 (useProfiles):
-- Count: ${activeProfiles.length}
-- IDs: ${activeProfiles.map(p => p.id).join(', ')}
-
-SOURCE 2 (useActiveProfile):
-- Count: ${activeProfilesFromHook.length}
-- IDs: ${activeProfilesFromHook.map(p => p.id).join(', ')}
-- Loading: ${activeProfileLoading}
-
-Current state:
-- activeEmployeeId: ${activeEmployeeId}
-- activeEmployee: ${activeEmployee?.name ?? 'null'}`
-                      
-                      setDebugInfo(debugMsg)
-                      
-                      if (profile.id !== undefined && profile.id !== null) {
-                        setActiveEmployeeId(profile.id)
-                      } else {
-                        setDebugInfo(prev => prev + '\n\nERROR: profile.id is undefined or null!')
-                      }
-                    }}
+                    onClick={() => profile.id && setActiveEmployeeId(profile.id)}
                   >
                     {profile.name} · {profile.exportRecipient}
                   </button>
                 ))}
               </div>
-              
-              {debugInfo ? (
-                <div style={{ 
-                  marginTop: '16px', 
-                  padding: '12px', 
-                  background: '#fff3cd', 
-                  border: '1px solid #ffc107',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'monospace'
-                }}>
-                  {debugInfo}
-                </div>
-              ) : null}
 
               <div className="button-row top-gap">
                 <button type="button" className="secondary-button" onClick={() => setActiveTab('settings')}>
