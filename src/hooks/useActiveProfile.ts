@@ -1,5 +1,5 @@
 import Dexie, { liveQuery } from 'dexie'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { type Employee, db } from '../db/database'
 import { ACTIVE_PROFILE_STORAGE_KEY } from '../utils/storageKeys'
@@ -100,7 +100,25 @@ export function useActiveProfile() {
     window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(activeEmployeeId))
   }, [activeEmployeeId])
 
-  const activeEmployee = useMemo(() => profiles.find((profile) => profile.id === activeEmployeeId) ?? null, [activeEmployeeId, profiles])
+  const [activeEmployee, setActiveEmployee] = useState<Employee | null>(null)
+
+  // Fetch the active employee from the database when activeEmployeeId changes
+  useEffect(() => {
+    if (activeEmployeeId === null) {
+      setActiveEmployee(null)
+      return
+    }
+
+    console.log('[useActiveProfile] Fetching employee from DB with ID:', activeEmployeeId)
+    
+    db.employees.get(activeEmployeeId).then((employee) => {
+      console.log('[useActiveProfile] Fetched employee:', employee?.name)
+      setActiveEmployee(employee ?? null)
+    }).catch((error) => {
+      console.error('[useActiveProfile] Failed to fetch employee:', error)
+      setActiveEmployee(null)
+    })
+  }, [activeEmployeeId])
 
   const setActiveEmployeeId = (employeeId: number) => {
     console.log('[useActiveProfile] ========================================')
