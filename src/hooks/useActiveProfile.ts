@@ -104,13 +104,16 @@ export function useActiveProfile() {
 
   const setActiveEmployeeId = (employeeId: number) => {
     console.log('[useActiveProfile] ========================================')
-    console.log('[useActiveProfile] setActiveEmployeeId CALLED')
-    console.log('[useActiveProfile] Requested ID:', employeeId, 'Type:', typeof employeeId)
-    console.log('[useActiveProfile] Current profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
-    console.log('[useActiveProfile] Current requestedActiveEmployeeId:', requestedActiveEmployeeId)
-    console.log('[useActiveProfile] Calling setActiveEmployeeIdState...')
+    console.log('[useActiveProfile] setActiveEmployeeId CALLED with ID:', employeeId)
+    
+    // Set both the requested ID AND the active ID immediately
+    console.log('[useActiveProfile] Setting requestedActiveEmployeeId...')
     setActiveEmployeeIdState(employeeId)
-    console.log('[useActiveProfile] setActiveEmployeeIdState called!')
+    
+    console.log('[useActiveProfile] Setting activeEmployeeId directly...')
+    setActiveEmployeeIdInternal(employeeId)
+    
+    console.log('[useActiveProfile] Both states updated!')
     console.log('[useActiveProfile] ========================================')
   }
 
