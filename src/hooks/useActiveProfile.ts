@@ -57,7 +57,12 @@ export function useActiveProfile() {
   }, [])
 
   const activeEmployeeId = useMemo(() => {
-    console.log('[useActiveProfile] Computing activeEmployeeId:', { loading, profilesCount: profiles.length, requestedActiveEmployeeId })
+    console.log('[useActiveProfile] Computing activeEmployeeId:', { 
+      loading, 
+      profilesCount: profiles.length, 
+      requestedActiveEmployeeId,
+      profileIds: profiles.map(p => p.id)
+    })
     
     if (loading) {
       console.log('[useActiveProfile] Returning null (still loading)')
@@ -69,43 +74,52 @@ export function useActiveProfile() {
       return null
     }
 
-    // If a profile was explicitly requested, validate it
+    // If a profile was explicitly requested, use it if it exists in active profiles
     if (requestedActiveEmployeeId !== null) {
-      const isValid = profiles.some((profile) => profile.id === requestedActiveEmployeeId)
-      console.log('[useActiveProfile] Requested profile valid:', isValid)
+      const matchingProfile = profiles.find((profile) => profile.id === requestedActiveEmployeeId)
+      console.log('[useActiveProfile] Looking for requested profile:', requestedActiveEmployeeId, 'Found:', matchingProfile?.name)
       
-      if (isValid) {
-        console.log('[useActiveProfile] Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
+      if (matchingProfile) {
+        console.log('[useActiveProfile] ✓ Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
         return requestedActiveEmployeeId
       }
       
-      // If requested profile is not in active profiles, return null to show recovery screen
-      console.log('[useActiveProfile] Requested profile not active, returning null')
+      // Requested profile not found in active profiles - could be inactive
+      console.log('[useActiveProfile] ✗ Requested profile not in active list, returning null')
       return null
     }
 
-    // No profile requested yet - try to use first available as default
-    const fallback = profiles[0].id ?? null
+    // No profile requested yet - use first available as default
+    const fallback = profiles[0]?.id ?? null
     console.log('[useActiveProfile] No profile requested, using first active profile:', fallback)
     return fallback
   }, [loading, profiles, requestedActiveEmployeeId])
 
   useEffect(() => {
+    console.log('[useActiveProfile] Persisting activeEmployeeId to localStorage:', activeEmployeeId)
+    
     if (activeEmployeeId === null) {
+      console.log('[useActiveProfile] Removing from localStorage')
       window.localStorage.removeItem(ACTIVE_PROFILE_STORAGE_KEY)
       return
     }
 
+    console.log('[useActiveProfile] Saving to localStorage:', activeEmployeeId)
     window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(activeEmployeeId))
   }, [activeEmployeeId])
 
   const activeEmployee = useMemo(() => profiles.find((profile) => profile.id === activeEmployeeId) ?? null, [activeEmployeeId, profiles])
 
   const setActiveEmployeeId = (employeeId: number) => {
-    console.log('[useActiveProfile] setActiveEmployeeId called with:', employeeId)
+    console.log('[useActiveProfile] ========================================')
+    console.log('[useActiveProfile] setActiveEmployeeId CALLED')
+    console.log('[useActiveProfile] Requested ID:', employeeId, 'Type:', typeof employeeId)
     console.log('[useActiveProfile] Current profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
     console.log('[useActiveProfile] Current requestedActiveEmployeeId:', requestedActiveEmployeeId)
+    console.log('[useActiveProfile] Calling setActiveEmployeeIdState...')
     setActiveEmployeeIdState(employeeId)
+    console.log('[useActiveProfile] setActiveEmployeeIdState called!')
+    console.log('[useActiveProfile] ========================================')
   }
 
   return {
