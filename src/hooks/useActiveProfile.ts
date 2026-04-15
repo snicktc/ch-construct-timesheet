@@ -59,24 +59,34 @@ export function useActiveProfile() {
   const activeEmployeeId = useMemo(() => {
     console.log('[useActiveProfile] Computing activeEmployeeId:', { loading, profilesCount: profiles.length, requestedActiveEmployeeId })
     
-    if (loading || profiles.length === 0) {
-      console.log('[useActiveProfile] Returning null (loading or no profiles)')
+    if (loading) {
+      console.log('[useActiveProfile] Returning null (still loading)')
       return null
     }
 
-    const currentIsValid =
-      requestedActiveEmployeeId !== null &&
-      profiles.some((profile) => profile.id === requestedActiveEmployeeId)
-
-    console.log('[useActiveProfile] currentIsValid:', currentIsValid)
-
-    if (currentIsValid) {
-      console.log('[useActiveProfile] Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
-      return requestedActiveEmployeeId
+    if (profiles.length === 0) {
+      console.log('[useActiveProfile] Returning null (no active profiles)')
+      return null
     }
 
+    // If a profile was explicitly requested, validate it
+    if (requestedActiveEmployeeId !== null) {
+      const isValid = profiles.some((profile) => profile.id === requestedActiveEmployeeId)
+      console.log('[useActiveProfile] Requested profile valid:', isValid)
+      
+      if (isValid) {
+        console.log('[useActiveProfile] Returning requestedActiveEmployeeId:', requestedActiveEmployeeId)
+        return requestedActiveEmployeeId
+      }
+      
+      // If requested profile is not in active profiles, return null to show recovery screen
+      console.log('[useActiveProfile] Requested profile not active, returning null')
+      return null
+    }
+
+    // No profile requested yet - try to use first available as default
     const fallback = profiles[0].id ?? null
-    console.log('[useActiveProfile] Falling back to first profile:', fallback)
+    console.log('[useActiveProfile] No profile requested, using first active profile:', fallback)
     return fallback
   }, [loading, profiles, requestedActiveEmployeeId])
 

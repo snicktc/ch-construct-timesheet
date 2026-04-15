@@ -146,13 +146,19 @@ function App() {
                     type="button"
                     className="profile-chip"
                     onClick={() => {
-                      const debugMsg = `DEBUG: Klik op profiel\nID: ${profile.id}\nNaam: ${profile.name}\nActiveProfiles count: ${activeProfiles.length}\nCurrent activeEmployeeId: ${activeEmployeeId}`
+                      const debugMsg = `DEBUG: Klik op profiel\nID: ${profile.id}\nType: ${typeof profile.id}\nNaam: ${profile.name}\nActiveProfiles count: ${activeProfiles.length}\nActiveProfiles IDs: ${activeProfiles.map(p => p.id).join(', ')}\nCurrent activeEmployeeId: ${activeEmployeeId}\nCurrent activeEmployee: ${activeEmployee?.name ?? 'null'}`
                       setDebugInfo(debugMsg)
                       
-                      if (profile.id) {
+                      if (profile.id !== undefined && profile.id !== null) {
+                        console.log('Calling setActiveEmployeeId with:', profile.id)
                         setActiveEmployeeId(profile.id)
+                        
+                        // Check after 100ms if it worked
+                        setTimeout(() => {
+                          setDebugInfo(prev => prev + `\n\nNa 100ms:\nactiveEmployeeId: ${activeEmployeeId}\nactiveEmployee: ${activeEmployee?.name ?? 'null'}`)
+                        }, 100)
                       } else {
-                        setDebugInfo(prev => prev + '\n\nERROR: profile.id is undefined!')
+                        setDebugInfo(prev => prev + '\n\nERROR: profile.id is undefined or null!')
                       }
                     }}
                   >
