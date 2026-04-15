@@ -139,7 +139,7 @@ function App() {
               </p>
 
               <div className="profile-list" role="tablist" aria-label="Beschikbare profielen">
-                {profiles.map((profile) => (
+                {activeProfiles.map((profile) => (
                   <button
                     key={profile.id}
                     type="button"
