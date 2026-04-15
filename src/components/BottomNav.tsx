@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 export type TabId = 'today' | 'week' | 'clients' | 'settings'
 
 type BottomNavProps = {
@@ -12,7 +14,7 @@ const TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: 'settings', label: 'Meer', icon: '⚙' },
 ]
 
-export function BottomNav({ activeTab, onSelect }: BottomNavProps) {
+function BottomNavComponent({ activeTab, onSelect }: BottomNavProps) {
   return (
     <nav className="bottom-nav" aria-label="Hoofdnavigatie">
       {TABS.map((tab) => (
@@ -31,3 +33,5 @@ export function BottomNav({ activeTab, onSelect }: BottomNavProps) {
     </nav>
   )
 }
+
+export const BottomNav = memo(BottomNavComponent)

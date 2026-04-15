@@ -1,4 +1,4 @@
-import { liveQuery } from 'dexie'
+import Dexie, { liveQuery } from 'dexie'
 import { useEffect, useMemo, useState } from 'react'
 
 import { type Employee, db } from '../db/database'
@@ -35,8 +35,14 @@ export function useActiveProfile() {
 
   useEffect(() => {
     const subscription = liveQuery(async () => {
-      const employees = await db.employees.orderBy('sortOrder').toArray()
-      return employees.filter((employee) => employee.isActive)
+      console.time('[PERF] useActiveProfile: fetch active profiles')
+      // Optimized: Use compound index [isActive+sortOrder] for direct filtered query
+      const employees = await db.employees
+        .where('[isActive+sortOrder]')
+        .between([true, Dexie.minKey], [true, Dexie.maxKey])
+        .toArray()
+      console.timeEnd('[PERF] useActiveProfile: fetch active profiles')
+      return employees
     }).subscribe({
       next: (nextProfiles) => {
         setProfilesState({ profiles: nextProfiles, loading: false })
@@ -85,7 +91,6 @@ export function useActiveProfile() {
     activeEmployeeId,
     activeEmployee,
     activeProfiles: profiles,
-    hasProfiles: profiles.length > 0,
     loading,
     setActiveEmployeeId,
   }

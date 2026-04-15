@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
@@ -77,7 +77,10 @@ export function SettingsPage({
   const notificationSupport = getNotificationSupport()
   const importInputRef = useRef<HTMLInputElement | null>(null)
   const logoInputRef = useRef<HTMLInputElement | null>(null)
-  const exportRecipientOptions = [...new Set(profiles.map((profile) => profile.exportRecipient).filter(Boolean))]
+  const exportRecipientOptions = useMemo(
+    () => [...new Set(profiles.map((profile) => profile.exportRecipient).filter(Boolean))],
+    [profiles],
+  )
 
   useEffect(() => {
     saveNotificationSettings(notificationSettings)
@@ -101,15 +104,15 @@ export function SettingsPage({
     [profiles, editingProfileId],
   )
 
-  const startCreate = () => {
+  const startCreate = useCallback(() => {
     setEditingProfileId(null)
     setDraft(EMPTY_DRAFT)
     setErrorMessage('')
     setSuccessMessage('')
     setIsEditorOpen(true)
-  }
+  }, [])
 
-  const startEdit = (profile: Employee) => {
+  const startEdit = useCallback((profile: Employee) => {
     setEditingProfileId(profile.id ?? null)
     setDraft({
       name: profile.name,
@@ -122,76 +125,85 @@ export function SettingsPage({
     setErrorMessage('')
     setSuccessMessage('')
     setIsEditorOpen(true)
-  }
+  }, [])
 
-  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const handleSave = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
 
-    if (!draft.name.trim() || !draft.exportRecipient.trim()) {
-      setErrorMessage('Naam en exportbestemmeling zijn verplicht.')
-      return
-    }
-
-    try {
-      setIsSaving(true)
-      setErrorMessage('')
-      const resolvedLogo = draft.exportLogo || (await getDefaultLogoForRecipient(draft.exportRecipient))
-      const profileInput = {
-        ...draft,
-        exportLogo: resolvedLogo,
+      if (!draft.name.trim() || !draft.exportRecipient.trim()) {
+        setErrorMessage('Naam en exportbestemmeling zijn verplicht.')
+        return
       }
 
-      if (editingProfileId) {
-        await updateProfile(editingProfileId, profileInput)
-      } else {
-        await createProfile(profileInput)
-      }
+      try {
+        setIsSaving(true)
+        setErrorMessage('')
+        const resolvedLogo = draft.exportLogo || (await getDefaultLogoForRecipient(draft.exportRecipient))
+        const profileInput = {
+          ...draft,
+          exportLogo: resolvedLogo,
+        }
 
-      setEditingProfileId(null)
-      setDraft(EMPTY_DRAFT)
-      setSuccessMessage('Profiel opgeslagen.')
-      setIsEditorOpen(false)
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Profiel opslaan mislukt.')
-    } finally {
-      setIsSaving(false)
-    }
-  }
+        if (editingProfileId) {
+          await updateProfile(editingProfileId, profileInput)
+        } else {
+          await createProfile(profileInput)
+        }
 
-  const handleToggleActive = async (profile: Employee) => {
-    if (!profile.id) {
-      return
-    }
-
-    try {
-      await setProfileActiveState(profile.id, !profile.isActive)
-      setSuccessMessage('Profielstatus bijgewerkt.')
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Profielstatus wijzigen mislukt.')
-    }
-  }
-
-  const handleDelete = async (profile: Employee) => {
-    if (!profile.id) {
-      return
-    }
-
-    try {
-      await deleteProfile(profile.id)
-
-      if (editingProfileId === profile.id) {
         setEditingProfileId(null)
         setDraft(EMPTY_DRAFT)
+        setSuccessMessage('Profiel opgeslagen.')
         setIsEditorOpen(false)
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Profiel opslaan mislukt.')
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [draft, editingProfileId, updateProfile, createProfile],
+  )
+
+  const handleToggleActive = useCallback(
+    async (profile: Employee) => {
+      if (!profile.id) {
+        return
       }
 
-      setSuccessMessage('Profiel verwijderd.')
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Profiel verwijderen mislukt.')
-    }
-  }
+      try {
+        await setProfileActiveState(profile.id, !profile.isActive)
+        setSuccessMessage('Profielstatus bijgewerkt.')
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Profielstatus wijzigen mislukt.')
+      }
+    },
+    [setProfileActiveState],
+  )
 
-  const handleExportData = async () => {
+  const handleDelete = useCallback(
+    async (profile: Employee) => {
+      if (!profile.id) {
+        return
+      }
+
+      try {
+        await deleteProfile(profile.id)
+
+        if (editingProfileId === profile.id) {
+          setEditingProfileId(null)
+          setDraft(EMPTY_DRAFT)
+          setIsEditorOpen(false)
+        }
+
+        setSuccessMessage('Profiel verwijderd.')
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Profiel verwijderen mislukt.')
+      }
+    },
+    [deleteProfile, editingProfileId],
+  )
+
+  const handleExportData = useCallback(async () => {
     try {
       setErrorMessage('')
       await downloadBackupFile()
@@ -199,9 +211,9 @@ export function SettingsPage({
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Backup export mislukt.')
     }
-  }
+  }, [])
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
 
     if (!file) {
@@ -217,9 +229,9 @@ export function SettingsPage({
     } finally {
       event.target.value = ''
     }
-  }
+  }, [])
 
-  const handleClearAllData = async () => {
+  const handleClearAllData = useCallback(async () => {
     try {
       setErrorMessage('')
       await clearAllAppData()
@@ -228,9 +240,9 @@ export function SettingsPage({
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Data wissen mislukt.')
     }
-  }
+  }, [])
 
-  const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
 
     if (!file) {
@@ -247,9 +259,9 @@ export function SettingsPage({
     } finally {
       event.target.value = ''
     }
-  }
+  }, [])
 
-  const handleLoadDefaultLogo = async () => {
+  const handleLoadDefaultLogo = useCallback(async () => {
     try {
       setErrorMessage('')
       const defaultLogo = await getDefaultLogoForRecipient(draft.exportRecipient)
@@ -263,25 +275,28 @@ export function SettingsPage({
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Standaardlogo laden mislukt.')
     }
-  }
+  }, [draft.exportRecipient])
 
-  const moveProfile = async (profile: Employee, direction: -1 | 1) => {
-    const currentIndex = profiles.findIndex((item) => item.id === profile.id)
-    const targetIndex = currentIndex + direction
+  const moveProfile = useCallback(
+    async (profile: Employee, direction: -1 | 1) => {
+      const currentIndex = profiles.findIndex((item) => item.id === profile.id)
+      const targetIndex = currentIndex + direction
 
-    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= profiles.length) {
-      return
-    }
+      if (currentIndex < 0 || targetIndex < 0 || targetIndex >= profiles.length) {
+        return
+      }
 
-    const reordered = [...profiles]
-    const [moved] = reordered.splice(currentIndex, 1)
-    reordered.splice(targetIndex, 0, moved)
+      const reordered = [...profiles]
+      const [moved] = reordered.splice(currentIndex, 1)
+      reordered.splice(targetIndex, 0, moved)
 
-    await Promise.all(
-      reordered.map((item, index) => (item.id ? updateProfile(item.id, { sortOrder: index }) : Promise.resolve())),
-    )
-    setSuccessMessage('Profielvolgorde bijgewerkt.')
-  }
+      await Promise.all(
+        reordered.map((item, index) => (item.id ? updateProfile(item.id, { sortOrder: index }) : Promise.resolve())),
+      )
+      setSuccessMessage('Profielvolgorde bijgewerkt.')
+    },
+    [profiles, updateProfile],
+  )
 
   return (
     <section className="today-page">

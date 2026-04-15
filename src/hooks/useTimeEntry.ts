@@ -122,7 +122,10 @@ export function useTimeEntry(employeeId: number | null, date: string) {
       return { entryId: newEntryId, clientId: client.id! }
     })
 
-    void db.clients.update(clientId, { lastUsedAt: new Date() })
+    // Update client lastUsedAt with error handling
+    db.clients.update(clientId, { lastUsedAt: new Date() }).catch((error) => {
+      console.error('Failed to update client lastUsedAt', { clientId, error })
+    })
 
     return entryId
   }
@@ -165,6 +168,7 @@ export function useTimeEntry(employeeId: number | null, date: string) {
       throw new Error('Geen actief profiel geselecteerd.')
     }
 
+    console.time('[PERF] repeatPreviousWorkday: total')
     return db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
       const sourceEntries = await getPreviousWorkdayEntries(employeeId, targetDate)
 
@@ -180,17 +184,43 @@ export function useTimeEntry(employeeId: number | null, date: string) {
 
       const now = new Date()
 
-      for (const entry of sourceEntries) {
-        await ensureLocationExists(entry.location)
-        await db.clients.update(entry.clientId, { lastUsedAt: now })
-        await db.timeEntries.add(
+      // OPTIMALISATIE: Collect unique locations and clients first
+      const uniqueLocations = [...new Set(sourceEntries.map((e) => e.location))]
+      const uniqueClientIds = [...new Set(sourceEntries.map((e) => e.clientId))]
+
+      console.time('[PERF] repeatPreviousWorkday: batch location check')
+      // Batch location checks
+      const locationChecks = await Promise.all(
+        uniqueLocations.map((loc) => db.locations.where('name').equals(loc.trim()).first()),
+      )
+      console.timeEnd('[PERF] repeatPreviousWorkday: batch location check')
+
+      console.time('[PERF] repeatPreviousWorkday: batch location insert')
+      // Batch insert missing locations
+      const missingLocations = uniqueLocations.filter((loc, idx) => loc.trim() && !locationChecks[idx])
+      if (missingLocations.length > 0) {
+        await db.locations.bulkAdd(missingLocations.map((name) => createLocationRecord({ name })))
+      }
+      console.timeEnd('[PERF] repeatPreviousWorkday: batch location insert')
+
+      console.time('[PERF] repeatPreviousWorkday: batch client update')
+      // Batch client updates
+      await Promise.all(uniqueClientIds.map((id) => db.clients.update(id, { lastUsedAt: now })))
+      console.timeEnd('[PERF] repeatPreviousWorkday: batch client update')
+
+      console.time('[PERF] repeatPreviousWorkday: batch entry insert')
+      // Batch insert time entries
+      await db.timeEntries.bulkAdd(
+        sourceEntries.map((entry) =>
           createTimeEntryRecord({
             ...entry,
             employeeId,
             date: targetDate,
           }),
-        )
-      }
+        ),
+      )
+      console.timeEnd('[PERF] repeatPreviousWorkday: batch entry insert')
+      console.timeEnd('[PERF] repeatPreviousWorkday: total')
     })
   }
 

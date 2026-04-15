@@ -206,7 +206,7 @@ export class TimesheetDatabase extends Dexie {
     super('timesheet')
 
     this.version(1).stores({
-      employees: '++id, name, exportRecipient, sortOrder, isActive, createdAt',
+      employees: '++id, name, exportRecipient, sortOrder, isActive, [isActive+sortOrder], createdAt',
       clients: '++id, name, lastUsedAt',
       locations: '++id, name',
       timeEntries: '++id, employeeId, date, [employeeId+date], sortOrder, clientId, clientName',

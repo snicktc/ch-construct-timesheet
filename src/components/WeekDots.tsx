@@ -1,10 +1,12 @@
+import { memo } from 'react'
+
 type WeekDotsProps = {
   dates: string[]
   completedDates: Set<string>
   todayDate: string
 }
 
-export function WeekDots({ dates, completedDates, todayDate }: WeekDotsProps) {
+function WeekDotsComponent({ dates, completedDates, todayDate }: WeekDotsProps) {
   return (
     <div className="week-dots" aria-label="Weekvoortgang">
       {dates.map((date) => {
@@ -22,3 +24,5 @@ export function WeekDots({ dates, completedDates, todayDate }: WeekDotsProps) {
     </div>
   )
 }
+
+export const WeekDots = memo(WeekDotsComponent)

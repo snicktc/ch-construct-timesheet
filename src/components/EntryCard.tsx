@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import type { TimeEntry } from '../db/database'
 import { calculateEntryMinutes, formatMinutesAsHours } from '../utils/timeCalc'
 
@@ -6,7 +8,7 @@ type EntryCardProps = {
   onEdit: () => void
 }
 
-export function EntryCard({ entry, onEdit }: EntryCardProps) {
+function EntryCardComponent({ entry, onEdit }: EntryCardProps) {
   return (
     <article className="entry-card">
       <div className="entry-card-header">
@@ -27,3 +29,5 @@ export function EntryCard({ entry, onEdit }: EntryCardProps) {
     </article>
   )
 }
+
+export const EntryCard = memo(EntryCardComponent)

@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { Toast } from '../components/Toast'
@@ -49,9 +49,22 @@ export function WeekPage({
   const [exportSuccess, setExportSuccess] = useState('')
   const [latestExportFile, setLatestExportFile] = useState<File | null>(null)
   const [preparedSharePeriodKey, setPreparedSharePeriodKey] = useState('')
+
+  const handleSwipeLeft = useCallback(() => {
+    console.time('[PERF] WeekPage: swipeLeft')
+    setAnchorDate((current) => addDays(current, 14))
+    console.timeEnd('[PERF] WeekPage: swipeLeft')
+  }, [])
+
+  const handleSwipeRight = useCallback(() => {
+    console.time('[PERF] WeekPage: swipeRight')
+    setAnchorDate((current) => addDays(current, -14))
+    console.timeEnd('[PERF] WeekPage: swipeRight')
+  }, [])
+
   const swipeBindings = useHorizontalSwipe({
-    onSwipeLeft: () => setAnchorDate((current) => addDays(current, 14)),
-    onSwipeRight: () => setAnchorDate((current) => addDays(current, -14)),
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
   })
 
   const fortnightDates = useMemo(() => getFortnightDates(anchorDate), [anchorDate])
@@ -188,28 +201,37 @@ export function WeekPage({
     return () => window.clearTimeout(timeoutId)
   }, [exportError, exportSuccess])
 
-  const renderWeekRows = (dates: Date[]) => {
-    const weekMinutes = dates.reduce((total, date) => {
-      const dateEntries = entriesByDate.get(formatDateKey(date)) ?? []
-      return total + calculateDayTotalMinutes(dateEntries)
-    }, 0)
+  const handleOpenDay = useCallback(
+    (dateKey: string) => {
+      onOpenDay(parseDateKey(dateKey))
+    },
+    [onOpenDay],
+  )
 
-    return (
-      <section className="panel">
-        <h2>Week {getIsoWeekNumber(dates[0])}</h2>
-        <div className="week-day-list">
-          {dates.map((date) => {
-            const dateKey = formatDateKey(date)
-            const dateEntries = entriesByDate.get(dateKey) ?? []
-            const dayTotal = calculateDayTotalMinutes(dateEntries)
+  const renderWeekRows = useCallback(
+    (dates: Date[]) => {
+      console.time('[PERF] WeekPage: renderWeekRows')
+      const weekMinutes = dates.reduce((total, date) => {
+        const dateEntries = entriesByDate.get(formatDateKey(date)) ?? []
+        return total + calculateDayTotalMinutes(dateEntries)
+      }, 0)
 
-            return (
-              <button
-                key={dateKey}
-                type="button"
-                className={`week-day-card${dateEntries.length === 0 ? ' is-empty' : ''}${isWeekend(date) ? ' is-weekend' : ''}`}
-                onClick={() => onOpenDay(parseDateKey(dateKey))}
-              >
+      const result = (
+        <section className="panel">
+          <h2>Week {getIsoWeekNumber(dates[0])}</h2>
+          <div className="week-day-list">
+            {dates.map((date) => {
+              const dateKey = formatDateKey(date)
+              const dateEntries = entriesByDate.get(dateKey) ?? []
+              const dayTotal = calculateDayTotalMinutes(dateEntries)
+
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  className={`week-day-card${dateEntries.length === 0 ? ' is-empty' : ''}${isWeekend(date) ? ' is-weekend' : ''}`}
+                  onClick={() => handleOpenDay(dateKey)}
+                >
                 <div className="week-day-top">
                   <strong>{formatShortDate(date)}</strong>
                   <strong>{dateEntries.length > 0 ? formatMinutesAsHours(dayTotal) : '—'}</strong>
@@ -242,9 +264,13 @@ export function WeekPage({
           <span>Week {getIsoWeekNumber(dates[0])} subtotaal</span>
           <strong>{formatMinutesAsHours(weekMinutes)}</strong>
         </div>
-      </section>
-    )
-  }
+        </section>
+      )
+      console.timeEnd('[PERF] WeekPage: renderWeekRows')
+      return result
+    },
+    [entriesByDate, handleOpenDay],
+  )
 
   const handleExportPdf = async () => {
     try {

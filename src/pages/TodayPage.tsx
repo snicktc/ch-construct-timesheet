@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { EntryForm } from '../components/EntryForm'
 import { EntryCard } from '../components/EntryCard'
@@ -73,9 +73,22 @@ export function TodayPage({
   const suggestedStartTime = entries.length > 0 ? entries[entries.length - 1].endTime : activeEmployee.defaultStartTime
   const defaultBreakMinutes = entries.length > 0 ? 0 : activeEmployee.defaultBreakMinutes
   const shouldShowInlineEmptyForm = !loading && entries.length === 0 && !editingEntry
+
+  const handleSwipeLeft = useCallback(() => {
+    console.time('[PERF] TodayPage: swipeLeft')
+    setSelectedDate((current) => addDays(current, 1))
+    console.timeEnd('[PERF] TodayPage: swipeLeft')
+  }, [])
+
+  const handleSwipeRight = useCallback(() => {
+    console.time('[PERF] TodayPage: swipeRight')
+    setSelectedDate((current) => addDays(current, -1))
+    console.timeEnd('[PERF] TodayPage: swipeRight')
+  }, [])
+
   const swipeBindings = useHorizontalSwipe({
-    onSwipeLeft: () => setSelectedDate((current) => addDays(current, 1)),
-    onSwipeRight: () => setSelectedDate((current) => addDays(current, -1)),
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
   })
 
   useEffect(() => {
@@ -139,7 +152,8 @@ export function TodayPage({
     return () => subscription.unsubscribe()
   }, [activeEmployeeId, weekdayDateKeys])
 
-  const handleRepeat = async () => {
+  const handleRepeat = useCallback(async () => {
+    console.time('[PERF] TodayPage: repeatPreviousWorkday')
     try {
       setIsRepeating(true)
       setErrorMessage('')
@@ -150,58 +164,68 @@ export function TodayPage({
     } finally {
       setIsRepeating(false)
     }
-  }
+    console.timeEnd('[PERF] TodayPage: repeatPreviousWorkday')
+  }, [repeatPreviousWorkday, selectedDateKey])
 
-  const handleCreateClient = async (input: { name: string; defaultLocation: string }) => {
-    const createdId = await createClient(input)
+  const handleCreateClient = useCallback(
+    async (input: { name: string; defaultLocation: string }) => {
+      const createdId = await createClient(input)
 
-    if (!createdId) {
-      throw new Error('Klant aanmaken mislukt.')
-    }
+      if (!createdId) {
+        throw new Error('Klant aanmaken mislukt.')
+      }
 
-    return createdId
-  }
+      return createdId
+    },
+    [createClient],
+  )
 
-  const handleCreateEntry = async (input: {
-    employeeId: number
-    date: string
-    clientId: number
-    location: string
-    startTime: string
-    endTime: string
-    breakMinutes?: number
-    travelCreditMinutes?: number
-    isDriver?: DriverStatus
-    notes?: string
-  }) => {
-    await createEntry({ ...input, date: selectedDateKey })
-    setFeedbackMessage('Uren opgeslagen.')
-    setIsFormOpen(false)
-  }
+  const handleCreateEntry = useCallback(
+    async (input: {
+      employeeId: number
+      date: string
+      clientId: number
+      location: string
+      startTime: string
+      endTime: string
+      breakMinutes?: number
+      travelCreditMinutes?: number
+      isDriver?: DriverStatus
+      notes?: string
+    }) => {
+      await createEntry({ ...input, date: selectedDateKey })
+      setFeedbackMessage('Uren opgeslagen.')
+      setIsFormOpen(false)
+    },
+    [createEntry, selectedDateKey],
+  )
 
-  const handleUpdateEntry = async (input: {
-    employeeId: number
-    date: string
-    clientId: number
-    location: string
-    startTime: string
-    endTime: string
-    breakMinutes?: number
-    travelCreditMinutes?: number
-    isDriver?: DriverStatus
-    notes?: string
-  }) => {
-    if (!editingEntry?.id) {
-      return
-    }
+  const handleUpdateEntry = useCallback(
+    async (input: {
+      employeeId: number
+      date: string
+      clientId: number
+      location: string
+      startTime: string
+      endTime: string
+      breakMinutes?: number
+      travelCreditMinutes?: number
+      isDriver?: DriverStatus
+      notes?: string
+    }) => {
+      if (!editingEntry?.id) {
+        return
+      }
 
-    await updateEntry(editingEntry.id, input)
-    setFeedbackMessage('Uren bijgewerkt.')
-    setEditingEntry(null)
-    setIsFormOpen(false)
-  }
+      await updateEntry(editingEntry.id, input)
+      setFeedbackMessage('Uren bijgewerkt.')
+      setEditingEntry(null)
+      setIsFormOpen(false)
+    },
+    [editingEntry, updateEntry],
+  )
 
-  const handleDeleteEntry = async () => {
+  const handleDeleteEntry = useCallback(async () => {
     if (!editingEntry?.id) {
       return
     }
@@ -210,7 +234,51 @@ export function TodayPage({
     setFeedbackMessage('Uren verwijderd.')
     setEditingEntry(null)
     setIsFormOpen(false)
-  }
+  }, [editingEntry, deleteEntry])
+
+  const handleCancelForm = useCallback(() => {
+    setEditingEntry(null)
+  }, [])
+
+  const handleCloseSheet = useCallback(() => {
+    setIsFormOpen(false)
+    setEditingEntry(null)
+  }, [])
+
+  const handleOpenNewEntry = useCallback(() => {
+    setIsFormOpen(true)
+    setEditingEntry(null)
+    setFocusClientTrigger((current) => current + 1)
+  }, [])
+
+  const handleEditEntry = useCallback(
+    (entry: TimeEntry) => {
+      setEditingEntry(entry)
+      setIsFormOpen(true)
+    },
+    [],
+  )
+
+  const handlePreviousDay = useCallback(() => {
+    setSelectedDate((current) => addDays(current, -1))
+  }, [])
+
+  const handleNextDay = useCallback(() => {
+    setSelectedDate((current) => addDays(current, 1))
+  }, [])
+
+  const handleAddEntry = useCallback(() => {
+    setEditingEntry(null)
+
+    if (shouldShowInlineEmptyForm) {
+      daySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setFocusClientTrigger((current) => current + 1)
+      return
+    }
+
+    setFocusClientTrigger((current) => current + 1)
+    setIsFormOpen(true)
+  }, [shouldShowInlineEmptyForm])
 
   return (
     <section className="today-page" {...swipeBindings}>
@@ -231,10 +299,10 @@ export function TodayPage({
           </div>
 
           <div className="date-nav" aria-label="Datum navigatie">
-            <button type="button" className="secondary-button" aria-label="Vorige dag" onClick={() => setSelectedDate((current) => addDays(current, -1))}>
+            <button type="button" className="secondary-button" aria-label="Vorige dag" onClick={handlePreviousDay}>
               ◀
             </button>
-            <button type="button" className="secondary-button" aria-label="Volgende dag" onClick={() => setSelectedDate((current) => addDays(current, 1))}>
+            <button type="button" className="secondary-button" aria-label="Volgende dag" onClick={handleNextDay}>
               ▶
             </button>
           </div>
@@ -266,17 +334,14 @@ export function TodayPage({
             defaultBreakMinutes={defaultBreakMinutes}
             onSubmit={handleCreateEntry}
             onCreateClient={handleCreateClient}
-            onCancel={() => setEditingEntry(null)}
+            onCancel={handleCancelForm}
           />
         </section>
       ) : null}
 
       <Sheet
         open={isFormOpen && (!shouldShowInlineEmptyForm || Boolean(editingEntry))}
-        onClose={() => {
-          setIsFormOpen(false)
-          setEditingEntry(null)
-        }}
+        onClose={handleCloseSheet}
         title={editingEntry ? 'Uren bewerken' : 'Uren toevoegen'}
       >
           <EntryForm
@@ -290,10 +355,7 @@ export function TodayPage({
           onSubmit={editingEntry ? handleUpdateEntry : handleCreateEntry}
           onDelete={editingEntry ? handleDeleteEntry : undefined}
           onCreateClient={handleCreateClient}
-          onCancel={() => {
-            setIsFormOpen(false)
-            setEditingEntry(null)
-          }}
+          onCancel={handleCloseSheet}
         />
       </Sheet>
 
@@ -316,10 +378,7 @@ export function TodayPage({
             <EntryCard
               key={entry.id}
               entry={entry}
-              onEdit={() => {
-                setEditingEntry(entry)
-                setIsFormOpen(true)
-              }}
+              onEdit={() => handleEditEntry(entry)}
             />
           ))}
         </div>
@@ -327,18 +386,7 @@ export function TodayPage({
         <button
           type="button"
           className="add-entry-button"
-          onClick={() => {
-            setEditingEntry(null)
-
-            if (shouldShowInlineEmptyForm) {
-              daySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              setFocusClientTrigger((current) => current + 1)
-              return
-            }
-
-            setFocusClientTrigger((current) => current + 1)
-            setIsFormOpen(true)
-          }}
+          onClick={handleAddEntry}
         >
           + Uren toevoegen voor deze dag
         </button>

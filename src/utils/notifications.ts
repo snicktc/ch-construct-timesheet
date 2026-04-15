@@ -4,6 +4,7 @@ import {
   LAST_EXPORT_NOTIFICATION_KEY,
   NOTIFICATION_SETTINGS_STORAGE_KEY,
 } from './storageKeys'
+import { parseTimeToMinutes } from './timeCalc'
 import { formatDateKey, getFortnightDates, getStartOfWeek } from './weekHelpers'
 
 const baseUrl = import.meta.env.BASE_URL
@@ -18,11 +19,6 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   dailyReminderEnabled: true,
   dailyReminderTime: '17:00',
   fridayExportPromptEnabled: true,
-}
-
-const parseTimeToMinutes = (value: string) => {
-  const [hours, minutes] = value.split(':').map(Number)
-  return (hours || 0) * 60 + (minutes || 0)
 }
 
 const getNowMinutes = (value: Date) => value.getHours() * 60 + value.getMinutes()

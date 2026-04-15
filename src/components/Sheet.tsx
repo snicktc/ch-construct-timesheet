@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, type ReactNode } from 'react'
 
 type SheetProps = {
   title?: string
@@ -7,7 +7,14 @@ type SheetProps = {
   children: ReactNode
 }
 
-export function Sheet({ title, open, onClose, children }: SheetProps) {
+function SheetComponent({ title, open, onClose, children }: SheetProps) {
+  const handleBackdropClick = useCallback(() => {
+    onClose()
+  }, [onClose])
+
+  const handleStopPropagation = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation()
+  }, [])
   const sheetRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -30,14 +37,14 @@ export function Sheet({ title, open, onClose, children }: SheetProps) {
   }
 
   return (
-    <div className="sheet-backdrop" role="presentation" onClick={onClose}>
+    <div className="sheet-backdrop" role="presentation" onClick={handleBackdropClick}>
       <section
         ref={sheetRef}
         className="sheet"
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onClick={(event) => event.stopPropagation()}
+        onClick={handleStopPropagation}
       >
         <div className="sheet-handle" aria-hidden="true" />
         {children}
@@ -45,3 +52,5 @@ export function Sheet({ title, open, onClose, children }: SheetProps) {
     </div>
   )
 }
+
+export const Sheet = memo(SheetComponent)

@@ -1,3 +1,5 @@
+import { memo, useCallback, useMemo } from 'react'
+
 import type { TimeEntry } from '../db/database'
 import { calculateDayTotalMinutes, formatMinutesAsHours } from '../utils/timeCalc'
 
@@ -22,15 +24,23 @@ const getRepeatSummary = (entries: TimeEntry[]) => {
   }
 }
 
-export function RepeatCard({ entries, onRepeat, disabled = false }: RepeatCardProps) {
+function RepeatCardComponent({ entries, onRepeat, disabled = false }: RepeatCardProps) {
+  const handleRepeat = useCallback(() => {
+    void onRepeat()
+  }, [onRepeat])
+
+  const summary = useMemo(() => {
+    console.time('[PERF] RepeatCard: getRepeatSummary')
+    const result = getRepeatSummary(entries)
+    console.timeEnd('[PERF] RepeatCard: getRepeatSummary')
+    return result
+  }, [entries])
   if (entries.length === 0) {
     return null
   }
 
-  const summary = getRepeatSummary(entries)
-
   return (
-    <button type="button" className="repeat-card" onClick={() => void onRepeat()} disabled={disabled}>
+    <button type="button" className="repeat-card" onClick={handleRepeat} disabled={disabled}>
       <span className="eyebrow">Zelfde als gisteren?</span>
       <strong>{summary.clientLabel}</strong>
       <span>{summary.timeLabel}</span>
@@ -40,3 +50,5 @@ export function RepeatCard({ entries, onRepeat, disabled = false }: RepeatCardPr
     </button>
   )
 }
+
+export const RepeatCard = memo(RepeatCardComponent)

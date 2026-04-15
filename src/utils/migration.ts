@@ -105,40 +105,45 @@ export async function migrateLegacyTimesheetData() {
 
     if (legacyDbExists && targetRecordCount === 0) {
       const legacyDb = new LegacyTimesheetDatabase()
-      await legacyDb.open()
+      
+      try {
+        await legacyDb.open()
 
-      const [employees, clients, locations, timeEntries, weekExports] = await Promise.all([
-        legacyDb.employees.toArray(),
-        legacyDb.clients.toArray(),
-        legacyDb.locations.toArray(),
-        legacyDb.timeEntries.toArray(),
-        legacyDb.weekExports.toArray(),
-      ])
+        const [employees, clients, locations, timeEntries, weekExports] = await Promise.all([
+          legacyDb.employees.toArray(),
+          legacyDb.clients.toArray(),
+          legacyDb.locations.toArray(),
+          legacyDb.timeEntries.toArray(),
+          legacyDb.weekExports.toArray(),
+        ])
 
-      await db.transaction('rw', [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports], async () => {
-        if (employees.length > 0) {
-          await db.employees.bulkPut(employees)
-        }
+        await db.transaction('rw', [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports], async () => {
+          if (employees.length > 0) {
+            await db.employees.bulkPut(employees)
+          }
 
-        if (clients.length > 0) {
-          await db.clients.bulkPut(clients)
-        }
+          if (clients.length > 0) {
+            await db.clients.bulkPut(clients)
+          }
 
-        if (locations.length > 0) {
-          await db.locations.bulkPut(locations)
-        }
+          if (locations.length > 0) {
+            await db.locations.bulkPut(locations)
+          }
 
-        if (timeEntries.length > 0) {
-          await db.timeEntries.bulkPut(timeEntries)
-        }
+          if (timeEntries.length > 0) {
+            await db.timeEntries.bulkPut(timeEntries)
+          }
 
-        if (weekExports.length > 0) {
-          await db.weekExports.bulkPut(weekExports)
-        }
-      })
+          if (weekExports.length > 0) {
+            await db.weekExports.bulkPut(weekExports)
+          }
+        })
 
-      await legacyDb.close()
-      copiedLegacyDatabase = true
+        copiedLegacyDatabase = true
+      } finally {
+        // Always close the database, even if an error occurred
+        await legacyDb.close()
+      }
     }
 
     if (!legacyDbExists || copiedLegacyDatabase) {

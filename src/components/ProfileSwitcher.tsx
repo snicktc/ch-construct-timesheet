@@ -1,3 +1,5 @@
+import { memo, useCallback, useMemo } from 'react'
+
 import type { Employee } from '../db/database'
 
 type ProfileSwitcherProps = {
@@ -14,23 +16,42 @@ const getRecipientBadge = (value: string) =>
     .join('')
     .slice(0, 3)
 
-export function ProfileSwitcher({ profiles, activeEmployeeId, onSelect }: ProfileSwitcherProps) {
+function ProfileSwitcherComponent({ profiles, activeEmployeeId, onSelect }: ProfileSwitcherProps) {
+  const handleSelect = useCallback(
+    (profileId: number | undefined) => {
+      if (profileId) {
+        onSelect(profileId)
+      }
+    },
+    [onSelect],
+  )
+
+  const profilesWithBadges = useMemo(
+    () =>
+      profiles.map((profile) => ({
+        ...profile,
+        badge: getRecipientBadge(profile.exportRecipient),
+      })),
+    [profiles],
+  )
   return (
     <div className="profile-list" role="tablist" aria-label="Actieve profielen">
-      {profiles.map((profile) => (
+      {profilesWithBadges.map((profile) => (
         <button
           key={profile.id}
           type="button"
           className={`profile-chip${profile.id === activeEmployeeId ? ' is-active' : ''}`}
-          onClick={() => profile.id && onSelect(profile.id)}
+          onClick={() => handleSelect(profile.id)}
           role="tab"
           aria-selected={profile.id === activeEmployeeId}
         >
           {profile.id === activeEmployeeId ? <span className="profile-chip-check">✓</span> : null}
           <span>{profile.name}</span>
-          <span className="profile-chip-badge">{getRecipientBadge(profile.exportRecipient)}</span>
+          <span className="profile-chip-badge">{profile.badge}</span>
         </button>
       ))}
     </div>
   )
 }
+
+export const ProfileSwitcher = memo(ProfileSwitcherComponent)

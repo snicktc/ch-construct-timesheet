@@ -87,16 +87,11 @@ export function useClients() {
     await db.clients.delete(id)
   }
 
-  const touchClient = async (id: number, timestamp = new Date()) => {
-    await db.clients.update(id, { lastUsedAt: timestamp })
-  }
-
   return {
     clients,
     loading,
     createClient,
     updateClient,
     deleteClient,
-    touchClient,
   }
 }

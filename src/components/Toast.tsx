@@ -1,8 +1,12 @@
+import { memo } from 'react'
+
 type ToastProps = {
   message: string
   tone: 'success' | 'error'
 }
 
-export function Toast({ message, tone }: ToastProps) {
+function ToastComponent({ message, tone }: ToastProps) {
   return <div className={`toast toast-${tone}`} role={tone === 'error' ? 'alert' : 'status'}>{message}</div>
 }
+
+export const Toast = memo(ToastComponent)

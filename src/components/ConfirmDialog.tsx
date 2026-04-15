@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import { Sheet } from './Sheet'
 
 type ConfirmDialogProps = {
@@ -11,7 +13,7 @@ type ConfirmDialogProps = {
   onCancel: () => void
 }
 
-export function ConfirmDialog({
+function ConfirmDialogComponent({
   open,
   title,
   message,
@@ -42,3 +44,5 @@ export function ConfirmDialog({
     </Sheet>
   )
 }
+
+export const ConfirmDialog = memo(ConfirmDialogComponent)
