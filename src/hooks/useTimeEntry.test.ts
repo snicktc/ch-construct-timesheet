@@ -564,15 +564,17 @@ describe('useTimeEntry Hook', () => {
       const previousDate = '2026-04-15'
       const targetDate = '2026-04-16'
 
-      // Create 10 entries on previous day
+      // Create 10 entries on previous day with explicit location variation.
       for (let i = 0; i < 10; i++) {
-        await db.timeEntries.add(createMockTimeEntry({
-          employeeId,
-          date: previousDate,
-          clientId,
-          sortOrder: i,
-          location: `Location ${i}`,
-        }))
+        await db.timeEntries.add(
+          createMockTimeEntry({
+            employeeId,
+            date: previousDate,
+            clientId,
+            sortOrder: i,
+            location: `Location ${i}`,
+          }),
+        )
       }
 
       const { result } = renderHook(() => useTimeEntry(employeeId, targetDate))
@@ -593,7 +595,9 @@ describe('useTimeEntry Hook', () => {
         expect(result.current.entries).toHaveLength(10)
       })
 
-      // Should complete in less than 500ms
+      expect(new Set(result.current.entries.map((entry) => entry.location)).size).toBe(10)
+
+      // Basic performance guard against obvious regressions in the repeat flow.
       expect(duration).toBeLessThan(500)
     })
   })

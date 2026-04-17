@@ -102,4 +102,45 @@ describe('generateTimesheetPdf', () => {
     expect(pdfMockState.jsPdfInstances[0]?.addImage).toHaveBeenCalled()
     expect(pdfMockState.jsPdfInstances[0]?.text).toHaveBeenCalledWith('WERKURENREGISTRATIE', expect.any(Number), 18)
   })
+
+  it('generates a normal fortnight PDF within a basic performance budget', async () => {
+    const entries = Array.from({ length: 10 }, (_, index) => ({
+      id: index + 1,
+      employeeId: 1,
+      date: `2026-04-${String(14 + index).padStart(2, '0')}`,
+      sortOrder: 0,
+      clientId: (index % 2) + 1,
+      clientName: index % 2 === 0 ? 'CH Construct' : 'VBW',
+      location: index % 2 === 0 ? 'Gent' : 'Brugge',
+      startTime: '06:30',
+      endTime: '15:30',
+      breakMinutes: 45,
+      travelCreditMinutes: 0,
+      isDriver: 'Ja' as const,
+      notes: index % 3 === 0 ? 'Werfcontrole' : '',
+    }))
+
+    const startTime = performance.now()
+    const result = await generateTimesheetPdf({
+      employee: {
+        id: 1,
+        name: 'Milan Test',
+        exportRecipient: 'CH Construct',
+        exportLogo: 'data:image/png;base64,logo',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      entries,
+    })
+    const duration = performance.now() - startTime
+
+    expect(duration).toBeLessThan(1500)
+    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
+    expect(result.pdfBlob).toBeInstanceOf(Blob)
+    expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
+  })
 })

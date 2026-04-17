@@ -3,6 +3,7 @@ import { exportAllData, importAllDataFromText, clearAllAppData } from './dataTra
 import { db } from '../db/database'
 import { setupTestDb, teardownTestDb, seedTestDb } from '../../tests/helpers/dbHelpers'
 import { ACTIVE_PROFILE_STORAGE_KEY, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
+import { createMockTimeEntry } from '../../tests/__fixtures__/timeEntries'
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
 globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
@@ -76,6 +77,31 @@ describe('dataTransfer utilities', () => {
 
       expect(result.blob).toBeInstanceOf(Blob)
       expect(result.blob.type).toBe('application/json')
+    })
+
+    it('should export a medium dataset efficiently', async () => {
+      const { employeeIds, clientIds } = await seedTestDb({ timeEntries: false })
+
+      for (let i = 0; i < 150; i++) {
+        await db.timeEntries.add(
+          createMockTimeEntry({
+            employeeId: employeeIds[i % employeeIds.length],
+            clientId: clientIds[i % clientIds.length],
+            clientName: `Client ${i % clientIds.length}`,
+            date: `2026-04-${String(14 + (i % 10)).padStart(2, '0')}`,
+            sortOrder: i % 5,
+            location: `Location ${i % 12}`,
+          }),
+        )
+      }
+
+      const startTime = performance.now()
+      const result = await exportAllData()
+      const duration = performance.now() - startTime
+
+      expect(duration).toBeLessThan(1000)
+      expect(result.backup.data.timeEntries.length).toBeGreaterThanOrEqual(150)
+      expect(result.blob).toBeInstanceOf(Blob)
     })
 
     it('should create valid blob URL', async () => {
