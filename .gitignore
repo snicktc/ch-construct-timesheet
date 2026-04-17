@@ -29,3 +29,7 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+# Local commercial offer artifacts
+CH-Construct-Timesheet-Commerciele-Offerte.xlsx
+~$CH-Construct-Timesheet-Commerciele-Offerte.xlsx
