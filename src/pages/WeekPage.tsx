@@ -51,15 +51,11 @@ export function WeekPage({
   const [preparedSharePeriodKey, setPreparedSharePeriodKey] = useState('')
 
   const handleSwipeLeft = useCallback(() => {
-    console.time('[PERF] WeekPage: swipeLeft')
     setAnchorDate((current) => addDays(current, 14))
-    console.timeEnd('[PERF] WeekPage: swipeLeft')
   }, [])
 
   const handleSwipeRight = useCallback(() => {
-    console.time('[PERF] WeekPage: swipeRight')
     setAnchorDate((current) => addDays(current, -14))
-    console.timeEnd('[PERF] WeekPage: swipeRight')
   }, [])
 
   const swipeBindings = useHorizontalSwipe({
@@ -210,7 +206,6 @@ export function WeekPage({
 
   const renderWeekRows = useCallback(
     (dates: Date[]) => {
-      console.time('[PERF] WeekPage: renderWeekRows')
       const weekMinutes = dates.reduce((total, date) => {
         const dateEntries = entriesByDate.get(formatDateKey(date)) ?? []
         return total + calculateDayTotalMinutes(dateEntries)
@@ -266,7 +261,6 @@ export function WeekPage({
         </div>
         </section>
       )
-      console.timeEnd('[PERF] WeekPage: renderWeekRows')
       return result
     },
     [entriesByDate, handleOpenDay],

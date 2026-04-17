@@ -7,6 +7,8 @@ PWA voor werkurenregistratie per profiel, met lokale opslag in IndexedDB, tweewe
 - Technisch ontwerp: `docs/01-technical-design.md`
 - Functionele analyse: `docs/02-functionele-analyse.md`
 - Gebruikershandleiding: `docs/03-gebruikershandleiding.md`
+- Test governance: `docs/05-test-governance.md`
+- Test matrix: `docs/06-test-matrix.md`
 - Publicatiehandleiding: `docs/_shared/document-publishing-guide.md`
 - Word reference strategie: `docs/_shared/reference-docx-strategy.md`
 
@@ -22,6 +24,8 @@ PWA voor werkurenregistratie per profiel, met lokale opslag in IndexedDB, tweewe
 npm install
 npm run dev
 npm run lint
+npm run test:run
+npm run test:e2e
 npm run build
 npm run preview
 ```

@@ -19,33 +19,23 @@ const readStoredActiveProfileId = () => {
 }
 
 export function useActiveProfile() {
-  const [requestedActiveEmployeeId, setActiveEmployeeIdState] = useState<number | null>(() =>
-    readStoredActiveProfileId(),
-  )
-  const [activeEmployeeId, setActiveEmployeeIdInternal] = useState<number | null>(null)
+  const [activeEmployeeId, setActiveEmployeeIdInternal] = useState<number | null>(() => readStoredActiveProfileId())
   const [activeEmployee, setActiveEmployee] = useState<Employee | null>(null)
-
-  // Update activeEmployeeId when requested ID changes
-  useEffect(() => {
-    if (requestedActiveEmployeeId !== null) {
-      setActiveEmployeeIdInternal(requestedActiveEmployeeId)
-    } else {
-      setActiveEmployeeIdInternal(null)
-    }
-  }, [requestedActiveEmployeeId])
 
   // Fetch the active employee from database when ID changes
   useEffect(() => {
     if (activeEmployeeId === null) {
-      setActiveEmployee(null)
       return
     }
 
-    void db.employees.get(activeEmployeeId).then((employee) => {
-      setActiveEmployee(employee ?? null)
-    }).catch(() => {
-      setActiveEmployee(null)
-    })
+    void db.employees
+      .get(activeEmployeeId)
+      .then((employee) => {
+        setActiveEmployee(employee ?? null)
+      })
+      .catch(() => {
+        setActiveEmployee(null)
+      })
   }, [activeEmployeeId])
 
   // Persist activeEmployeeId to localStorage
@@ -59,7 +49,7 @@ export function useActiveProfile() {
   }, [activeEmployeeId])
 
   const setActiveEmployeeId = (employeeId: number) => {
-    setActiveEmployeeIdState(employeeId)
+    setActiveEmployee(null)
     setActiveEmployeeIdInternal(employeeId)
   }
 

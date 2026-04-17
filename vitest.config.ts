@@ -8,6 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'json'],
@@ -20,23 +21,16 @@ export default defineConfig({
         'src/**/*.spec.{ts,tsx}',
       ],
       thresholds: {
-        // Start with low thresholds, increase as tests are added
-        // Target: 80% for all metrics
-        lines: 1,
-        functions: 1,
-        branches: 1,
-        statements: 1,
+        // Current baseline after page tests and Playwright smoke flows.
+        // Raise these further once ClientsPage, pdfExport and logoUtils are covered.
+        lines: 55,
+        functions: 55,
+        branches: 55,
+        statements: 55,
       },
     },
     // Performance settings
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        minThreads: 1,
-        maxThreads: 4,
-      },
-    },
     // Timeouts
     testTimeout: 10000,
     hookTimeout: 10000,

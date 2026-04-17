@@ -75,15 +75,11 @@ export function TodayPage({
   const shouldShowInlineEmptyForm = !loading && entries.length === 0 && !editingEntry
 
   const handleSwipeLeft = useCallback(() => {
-    console.time('[PERF] TodayPage: swipeLeft')
     setSelectedDate((current) => addDays(current, 1))
-    console.timeEnd('[PERF] TodayPage: swipeLeft')
   }, [])
 
   const handleSwipeRight = useCallback(() => {
-    console.time('[PERF] TodayPage: swipeRight')
     setSelectedDate((current) => addDays(current, -1))
-    console.timeEnd('[PERF] TodayPage: swipeRight')
   }, [])
 
   const swipeBindings = useHorizontalSwipe({
@@ -153,7 +149,6 @@ export function TodayPage({
   }, [activeEmployeeId, weekdayDateKeys])
 
   const handleRepeat = useCallback(async () => {
-    console.time('[PERF] TodayPage: repeatPreviousWorkday')
     try {
       setIsRepeating(true)
       setErrorMessage('')
@@ -164,7 +159,6 @@ export function TodayPage({
     } finally {
       setIsRepeating(false)
     }
-    console.timeEnd('[PERF] TodayPage: repeatPreviousWorkday')
   }, [repeatPreviousWorkday, selectedDateKey])
 
   const handleCreateClient = useCallback(

@@ -38,12 +38,7 @@ function RepeatCardComponent({ entries, onRepeat, disabled = false }: RepeatCard
     void onRepeat()
   }, [onRepeat])
 
-  const summary = useMemo(() => {
-    console.time('[PERF] RepeatCard: getRepeatSummary')
-    const result = getRepeatSummary(entries)
-    console.timeEnd('[PERF] RepeatCard: getRepeatSummary')
-    return result
-  }, [entries])
+  const summary = useMemo(() => getRepeatSummary(entries), [entries])
   if (entries.length === 0) {
     return null
   }

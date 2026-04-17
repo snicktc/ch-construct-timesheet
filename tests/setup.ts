@@ -3,6 +3,11 @@ import 'fake-indexeddb/auto'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
 
+Object.defineProperty(globalThis, '__BUILD_TIMESTAMP__', {
+  configurable: true,
+  value: '2026-04-17T00:00:00.000Z',
+})
+
 // Cleanup after each test
 afterEach(() => {
   cleanup()

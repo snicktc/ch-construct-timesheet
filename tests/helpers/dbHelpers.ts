@@ -3,6 +3,14 @@ import { mockEmployees } from '../__fixtures__/employees'
 import { mockClients } from '../__fixtures__/clients'
 import { mockTimeEntries } from '../__fixtures__/timeEntries'
 
+const requireNumericId = (value: number | undefined, entityName: string) => {
+  if (typeof value !== 'number') {
+    throw new Error(`${entityName} add did not return a numeric id`)
+  }
+
+  return value
+}
+
 /**
  * Setup fresh database for testing
  * Call this in beforeEach to ensure clean state
@@ -39,14 +47,14 @@ export const seedTestDb = async (options: {
 
   if (employees) {
     for (const employee of mockEmployees) {
-      const id = await db.employees.add(employee)
+      const id = requireNumericId(await db.employees.add(employee), 'Employee')
       employeeIds.push(id)
     }
   }
 
   if (clients) {
     for (const client of mockClients) {
-      const id = await db.clients.add(client)
+      const id = requireNumericId(await db.clients.add(client), 'Client')
       clientIds.push(id)
     }
   }

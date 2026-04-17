@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { exportAllData, importAllDataFromText, clearAllAppData } from './dataTransfer'
 import { db } from '../db/database'
 import { setupTestDb, teardownTestDb, seedTestDb } from '../../tests/helpers/dbHelpers'
-import { ACTIVE_EMPLOYEE_ID_STORAGE_KEY, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
+import { ACTIVE_PROFILE_STORAGE_KEY, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
-global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
-global.URL.revokeObjectURL = vi.fn()
+globalThis.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+globalThis.URL.revokeObjectURL = vi.fn()
 
 describe('dataTransfer utilities', () => {
   beforeEach(async () => {
@@ -46,7 +46,7 @@ describe('dataTransfer utilities', () => {
 
     it('should include localStorage state', async () => {
       // Set some localStorage values
-      window.localStorage.setItem(ACTIVE_EMPLOYEE_ID_STORAGE_KEY, '5')
+      window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, '5')
       window.localStorage.setItem(NOTIFICATION_SETTINGS_STORAGE_KEY, JSON.stringify({ enabled: true }))
 
       const result = await exportAllData()
@@ -129,12 +129,12 @@ describe('dataTransfer utilities', () => {
     })
 
     it('should restore localStorage state', async () => {
-      window.localStorage.setItem(ACTIVE_EMPLOYEE_ID_STORAGE_KEY, '7')
+      window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, '7')
       const { backup } = await exportAllData()
 
       // Clear localStorage
       window.localStorage.clear()
-      expect(window.localStorage.getItem(ACTIVE_EMPLOYEE_ID_STORAGE_KEY)).toBeNull()
+      expect(window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY)).toBeNull()
 
       // Import
       await importAllDataFromText(JSON.stringify(backup))
@@ -298,7 +298,7 @@ describe('dataTransfer utilities', () => {
     })
 
     it('should clear app localStorage keys', async () => {
-      window.localStorage.setItem(ACTIVE_EMPLOYEE_ID_STORAGE_KEY, '5')
+      window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, '5')
       window.localStorage.setItem(NOTIFICATION_SETTINGS_STORAGE_KEY, '{}')
       window.localStorage.setItem('other-key', 'should-remain')
 

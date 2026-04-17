@@ -17,7 +17,24 @@ npm run test:run
 
 # Run tests with coverage
 npm run test:coverage
+
+# Install Playwright browser for local E2E runs
+npm run playwright:install
+
+# Run Playwright smoke tests
+npm run test:e2e
 ```
+
+## 🧱 Test Layers
+
+De testsuite is opgesplitst in onderhoudbare lagen:
+
+1. **Unit** - Pure utilities en kleine helpers
+2. **Integration** - Dexie, hooks en data transfer logica
+3. **Component** - React component gedrag via React Testing Library
+4. **E2E** - Kritieke gebruikersflows via Playwright
+
+**Onderhoudsregel:** houd detailvalidaties in Vitest en reserveer Playwright voor kritieke end-to-end smoke flows.
 
 ## 📋 Test Feedback Mechanismen
 
@@ -27,6 +44,8 @@ Bij elke `git commit` worden automatisch de volgende checks uitgevoerd:
 
 1. **ESLint** - Code quality checks
 2. **Vitest** - Alleen tests voor gewijzigde bestanden
+
+Dit blijft de snelle lokale gate. De volledige suite draait automatisch op GitHub bij `pull_request` naar `main` en bij `push` naar `main`.
 
 **Voorbeeld output:**
 ```bash
@@ -79,23 +98,42 @@ Dit geeft je instant feedback bij elke file save:
 npm run test:coverage
 ```
 
-Output:
+Actuele baseline na fase 5:
 ```
-File                  | % Stmts | % Branch | % Funcs | % Lines |
-----------------------|---------|----------|---------|---------|
-All files             |   87.5  |   85.2   |   90.1  |   87.5  |
- utils/timeCalc.ts    |  100.0  |  100.0   |  100.0  |  100.0  |
- utils/weekHelpers.ts |   85.3  |   82.1   |   87.5  |   85.3  |
+All files             |   58.07 |   58.84  |   56.49 |   58.10 |
 ```
 
 HTML report: `coverage/index.html`
+
+### 4. GitHub CI Feedback
+
+GitHub Actions draait automatisch deze jobs:
+
+1. `lint`
+2. `test-vitest`
+3. `build`
+4. `test-e2e`
+
+Feedbackkanalen:
+- commit en pull request status checks
+- job logs in GitHub Actions
+- `coverage/` artifact van Vitest
+- `playwright-report/` artifact voor E2E
+- `test-results/` artifact bij Playwright failures
 
 ## 🔧 Configuration
 
 ### vitest.config.ts
 - Test environment: happy-dom
-- Coverage thresholds: 80%
+- Coverage thresholds: `55%` globaal als tussenstap vanaf de huidige baseline
 - Parallel execution: 4 threads
+
+### playwright.config.ts
+- Browser: Chromium
+- Start de app automatisch via `npm run build && npm run preview`
+- Screenshots, video en traces blijven enkel behouden bij failures
+- HTML report wordt gegenereerd in `playwright-report/`
+- E2E smoke scope: first run, vandaag-entry, week-naar-dag, repeat previous day, export availability, backup/import
 
 ### lint-staged
 Runs op gewijzigde files:
@@ -117,6 +155,10 @@ tests/
 
 src/
 └── **/*.test.ts          # Co-located tests
+
+e2e/
+├── *.spec.ts             # Playwright smoke flows
+└── helpers/              # Seed helpers voor browser-state
 ```
 
 ## ✅ Test Best Practices
@@ -150,16 +192,23 @@ Open http://localhost:51204/__vitest__/
 
 ## 📊 Coverage Thresholds
 
-Minimum coverage requirements:
-- Statements: 80%
-- Branches: 80%
-- Functions: 80%
-- Lines: 80%
+Huidige verplichte minimumthresholds:
+- Statements: 55%
+- Branches: 55%
+- Functions: 55%
+- Lines: 55%
 
-Critical paths require 100% coverage:
-- Time calculations
-- Database hooks
-- "Same as Yesterday" feature
+Geplande volgende verhoging:
+- focus op `ClientsPage`, `pdfExport.ts`, `logoUtils.ts`, `useHorizontalSwipe.ts`, `sw.ts`
+- daarna thresholds verhogen richting `65-70%`
+
+Kritieke paden die prioritair hoog moeten blijven:
+- time calculations
+- database hooks
+- notifications
+- migration
+- `Same as Yesterday`
+- first-run, backup/import en export availability smoke flows
 
 ## 🚫 Bypassing Pre-commit Hook
 
@@ -172,4 +221,9 @@ git commit --no-verify -m "Emergency fix"
 
 Pre-commit hooks geven **lokale feedback**.
 
-Voor volledige CI/CD setup (GitHub Actions), zie hoofddocumentatie.
+GitHub Actions geeft de volledige automatische validatie:
+
+1. Open een pull request naar `main` of push naar `main`
+2. GitHub start automatisch lint, Vitest, build en Playwright
+3. Gebruik de jobstatussen als merge gate
+4. Open artifacts bij failures om screenshots, traces en reports te bekijken
