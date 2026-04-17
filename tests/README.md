@@ -100,7 +100,7 @@ npm run test:coverage
 
 Actuele baseline na fase 5:
 ```
-All files             |   58.07 |   58.84  |   56.49 |   58.10 |
+All files             |   73.53 |   66.39  |   66.39 |   74.13 |
 ```
 
 HTML report: `coverage/index.html`
@@ -125,7 +125,7 @@ Feedbackkanalen:
 
 ### vitest.config.ts
 - Test environment: happy-dom
-- Coverage thresholds: `55%` globaal als tussenstap vanaf de huidige baseline
+- Coverage thresholds: `65%` globaal als nieuwe tussenstap vanaf de huidige baseline
 - Parallel execution: 4 threads
 
 ### playwright.config.ts
@@ -193,14 +193,14 @@ Open http://localhost:51204/__vitest__/
 ## 📊 Coverage Thresholds
 
 Huidige verplichte minimumthresholds:
-- Statements: 55%
-- Branches: 55%
-- Functions: 55%
-- Lines: 55%
+- Statements: 65%
+- Branches: 65%
+- Functions: 65%
+- Lines: 65%
 
 Geplande volgende verhoging:
-- focus op `ClientsPage`, `pdfExport.ts`, `logoUtils.ts`, `useHorizontalSwipe.ts`, `sw.ts`
-- daarna thresholds verhogen richting `65-70%`
+- focus op `ErrorBoundary.tsx`, `SettingsPage.tsx` extra branches en diepere `pdfExport.ts` branches
+- daarna thresholds verhogen richting `70-75%`
 
 Kritieke paden die prioritair hoog moeten blijven:
 - time calculations

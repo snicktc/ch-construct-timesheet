@@ -25,12 +25,11 @@ Deze matrix koppelt productgedrag aan de testlaag die het bewaakt. Gebruik dit d
 
 ## Volgende gaten
 
-Deze matrix toont ook de grootste resterende hiaten:
+Deze matrix toont nu de belangrijkste resterende uitbreidingen:
 
-1. `ClientsPage.tsx` heeft nog geen directe page-tests.
-2. `pdfExport.ts` heeft nog geen eigen Vitest-suite.
-3. `logoUtils.ts` heeft nog geen tests.
-4. `useHorizontalSwipe.ts` en `sw.ts` zijn nog ongedekt.
+1. `ErrorBoundary.tsx` heeft nog geen directe tests.
+2. `SettingsPage.tsx` heeft nog lage branchdekking op minder gebruikte paden.
+3. `pdfExport.ts` heeft nog vooral happy-path dekking en kan extra branchtests gebruiken.
 
 ## Onderhoudsregels
 

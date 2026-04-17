@@ -23,10 +23,10 @@ export default defineConfig({
       thresholds: {
         // Current baseline after page tests and Playwright smoke flows.
         // Raise these further once ClientsPage, pdfExport and logoUtils are covered.
-        lines: 55,
-        functions: 55,
-        branches: 55,
-        statements: 55,
+        lines: 65,
+        functions: 65,
+        branches: 65,
+        statements: 65,
       },
     },
     // Performance settings

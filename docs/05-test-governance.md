@@ -44,12 +44,12 @@ Bij elke automatische validatie is feedback zichtbaar via:
 
 Laatste gemeten baseline via `npm run test:coverage`:
 
-- statements: `58.07%`
-- branches: `58.84%`
-- functions: `56.49%`
-- lines: `58.10%`
+- statements: `73.53%`
+- branches: `66.39%`
+- functions: `66.39%`
+- lines: `74.13%`
 
-Daarom staan de globale Vitest thresholds momenteel op `55%` als afdwingbare tussenstap.
+Daarom staan de globale Vitest thresholds momenteel op `65%` als afdwingbare tussenstap.
 
 ## Huidige E2E smoke scope
 
