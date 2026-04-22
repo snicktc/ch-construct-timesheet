@@ -275,14 +275,14 @@ const addWeekTable = (
 
   autoTable(doc, {
     startY,
-    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/\nklant', 'Totaal/\ndag']],
+    head: [[`Week\n${weekTitle.replace('Week ', '')}`, 'Klant', 'Locatie', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/\nklant', 'Totaal/\ndag']],
     body: body.map((row) => [...row.slice(0, 8), '']),
     foot: [['', '', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 8.5,
-      cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
+      fontSize: 8.4,
+      cellPadding: { top: 1.7, right: 1.8, bottom: 1.7, left: 1.8 },
       minCellHeight: 7,
       overflow: 'linebreak',
       valign: 'middle',
@@ -303,15 +303,15 @@ const addWeekTable = (
       valign: 'middle',
     },
     columnStyles: {
-      0: { cellWidth: 18 },
-      1: { cellWidth: 32 },
-      2: { cellWidth: 29 },
-      3: { cellWidth: 15 },
-      4: { cellWidth: 15 },
-      5: { cellWidth: 15 },
-      6: { cellWidth: 16 },
-      7: { cellWidth: 23, halign: 'right', fontStyle: 'bold', overflow: 'visible' },
-      8: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 14 },
+      1: { cellWidth: 42 },
+      2: { cellWidth: 38 },
+      3: { cellWidth: 13 },
+      4: { cellWidth: 13 },
+      5: { cellWidth: 13 },
+      6: { cellWidth: 12 },
+      7: { cellWidth: 18, halign: 'right', fontStyle: 'bold', overflow: 'visible' },
+      8: { cellWidth: 18, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
       if (hookData.section === 'body') {
@@ -411,8 +411,8 @@ const addWeekTable = (
     doc.setFontSize(9)
     doc.setTextColor(26, 26, 26)
 
-    const midY = entry.startY + (entry.endY - entry.startY) / 2 + 1.5
-    doc.text(entry.value, entry.cellX + entry.cellW - 2.5, midY, { align: 'right' })
+    const midY = entry.startY + (entry.endY - entry.startY) / 2 + 1.1
+    doc.text(entry.value, entry.cellX + entry.cellW - 1.8, midY, { align: 'right' })
   }
 
   doc.setFont('helvetica', 'normal')
@@ -440,10 +440,10 @@ export async function generateTimesheetPdf({
   await addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
 
   let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 46)
-  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 6)
+  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 7)
 
   autoTable(doc, {
-    startY: currentY + 6,
+    startY: currentY + 7,
     head: [['Klant', 'Dagen', 'Uren']],
     body: summary.map((client) => [
       client.clientName,
@@ -455,8 +455,8 @@ export async function generateTimesheetPdf({
     pageBreak: 'avoid',
     styles: {
       font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 2.5,
+      fontSize: 8.8,
+      cellPadding: { top: 2, right: 2.5, bottom: 2, left: 2.5 },
       minCellHeight: 7,
       valign: 'middle',
       lineColor: [220, 220, 220],
@@ -476,8 +476,8 @@ export async function generateTimesheetPdf({
     },
     margin: { left: 14 },
     columnStyles: {
-      0: { cellWidth: 122 },
-      1: { cellWidth: 30, halign: 'right' },
+      0: { cellWidth: 124 },
+      1: { cellWidth: 28, halign: 'right' },
       2: { cellWidth: 30, halign: 'right' },
     },
   })
@@ -488,7 +488,7 @@ export async function generateTimesheetPdf({
     doc.setPage(page)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    doc.text(`pagina ${page}/${pageCount}`, 196, 293, { align: 'right' })
+    doc.text(`pagina ${page}/${pageCount}`, 196, 294, { align: 'right' })
   }
 
   const fileName = `Werkuren_${sanitizeFilePart(employee.name)}_Week_${weekOneNumber}-${weekTwoNumber}.pdf`

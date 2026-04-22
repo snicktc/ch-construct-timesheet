@@ -245,6 +245,7 @@ describe('generateTimesheetPdf', () => {
 
     const weekTableConfig = pdfMockState.autoTableMock.mock.calls[0]?.[1] as {
       startY: number
+      head: string[][]
       columnStyles: Record<number, { cellWidth: number }>
       foot: string[][]
       styles: { fontSize: number; minCellHeight: number }
@@ -252,16 +253,33 @@ describe('generateTimesheetPdf', () => {
     const summaryTableConfig = pdfMockState.autoTableMock.mock.calls[2]?.[1] as {
       startY: number
       pageBreak: string
+      columnStyles: Record<number, { cellWidth: number }>
       styles: { fontSize: number; minCellHeight: number }
     }
 
     expect(weekTableConfig.startY).toBe(46)
-    expect(weekTableConfig.columnStyles[7]?.cellWidth).toBe(23)
+    expect(weekTableConfig.head).toEqual([[
+      'Week\n17',
+      'Klant',
+      'Locatie',
+      'Start',
+      'Einde',
+      'Pauze',
+      'Chauf.',
+      'Totaal/\nklant',
+      'Totaal/\ndag',
+    ]])
+    expect(weekTableConfig.columnStyles[1]?.cellWidth).toBe(42)
+    expect(weekTableConfig.columnStyles[2]?.cellWidth).toBe(38)
+    expect(weekTableConfig.columnStyles[7]?.cellWidth).toBe(18)
     expect(weekTableConfig.foot).toEqual([['', '', '', '', '', '', '', 'Subtotaal', '10:00']])
-    expect(weekTableConfig.styles.fontSize).toBe(8.5)
+    expect(weekTableConfig.styles.fontSize).toBe(8.4)
     expect(weekTableConfig.styles.minCellHeight).toBe(7)
     expect(summaryTableConfig.pageBreak).toBe('avoid')
-    expect(summaryTableConfig.styles.fontSize).toBe(9)
+    expect(summaryTableConfig.startY).toBe(100)
+    expect(summaryTableConfig.columnStyles[0]?.cellWidth).toBe(124)
+    expect(summaryTableConfig.columnStyles[1]?.cellWidth).toBe(28)
+    expect(summaryTableConfig.styles.fontSize).toBe(8.8)
     expect(summaryTableConfig.styles.minCellHeight).toBe(7)
   })
 })
