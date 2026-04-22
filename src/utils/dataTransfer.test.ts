@@ -28,7 +28,7 @@ describe('dataTransfer utilities', () => {
       const result = await exportAllData()
 
       expect(result.backup).toBeDefined()
-      expect(result.backup.version).toBe(1)
+      expect(result.backup.version).toBe(2)
       expect(result.backup.exportedAt).toBeTruthy()
       expect(result.backup.data.employees.length).toBeGreaterThan(0)
       expect(result.backup.data.clients.length).toBeGreaterThan(0)
@@ -119,7 +119,7 @@ describe('dataTransfer utilities', () => {
       const json = await result.blob.text()
       const parsed = JSON.parse(json)
 
-      expect(parsed.version).toBe(1)
+      expect(parsed.version).toBe(2)
       expect(parsed.data).toBeDefined()
       expect(parsed.appState).toBeDefined()
     })
@@ -178,7 +178,6 @@ describe('dataTransfer utilities', () => {
       await db.employees.add({
         name: 'New Employee',
         exportRecipient: 'New Company',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,
@@ -232,7 +231,7 @@ describe('dataTransfer utilities', () => {
 
     it('should handle empty backup', async () => {
       const emptyBackup = {
-        version: 1 as const,
+        version: 2 as const,
         exportedAt: new Date().toISOString(),
         appState: {
           localStorage: {},
@@ -304,6 +303,40 @@ describe('dataTransfer utilities', () => {
       }
 
       await expect(importAllDataFromText(JSON.stringify(backup))).resolves.not.toThrow()
+    })
+
+    it('should import legacy version 1 employee records with exportLogo', async () => {
+      const backup = {
+        version: 1 as const,
+        exportedAt: new Date().toISOString(),
+        appState: {
+          localStorage: {},
+        },
+        data: {
+          employees: [{
+            id: 7,
+            name: ' Legacy User ',
+            exportRecipient: ' VBW ',
+            exportLogo: 'data:image/png;base64,old-logo',
+            defaultBreakMinutes: 45,
+            defaultStartTime: '06:30',
+            sortOrder: 0,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          }],
+          clients: [],
+          locations: [],
+          timeEntries: [],
+          weekExports: [],
+        },
+      }
+
+      await importAllDataFromText(JSON.stringify(backup))
+
+      const employee = await db.employees.get(7)
+      expect(employee?.name).toBe('Legacy User')
+      expect(employee?.exportRecipient).toBe('VBW')
+      expect('exportLogo' in (employee ?? {})).toBe(false)
     })
   })
 
@@ -433,7 +466,6 @@ describe('dataTransfer utilities', () => {
           employees: [{
             name: 'Test',
             exportRecipient: 'Company',
-            exportLogo: '',
             defaultBreakMinutes: 45,
             defaultStartTime: '06:30',
             sortOrder: 0,

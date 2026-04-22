@@ -14,7 +14,6 @@ export interface Employee {
   id?: number
   name: string
   exportRecipient: string
-  exportLogo: string
   defaultBreakMinutes: number
   defaultStartTime: string
   sortOrder: number
@@ -87,7 +86,6 @@ const normalizeEmployeeChanges = (changes: Partial<Employee>): Partial<Employee>
       }
     : {}),
   ...(changes.defaultStartTime !== undefined ? { defaultStartTime: changes.defaultStartTime } : {}),
-  ...(changes.exportLogo !== undefined ? { exportLogo: changes.exportLogo ?? '' } : {}),
 })
 
 const normalizeClientChanges = (changes: Partial<Client>): Partial<Client> => ({
@@ -151,12 +149,22 @@ const normalizeDriverStatus = (value: string | undefined): DriverStatus => {
 export const createEmployeeRecord = (input: NewEmployeeInput, existingCount = 0): Omit<Employee, 'id'> => ({
   name: normalizeString(input.name),
   exportRecipient: normalizeString(input.exportRecipient),
-  exportLogo: input.exportLogo ?? '',
   defaultBreakMinutes: clampNonNegativeInteger(input.defaultBreakMinutes ?? DEFAULT_BREAK_MINUTES, DEFAULT_BREAK_MINUTES),
   defaultStartTime: input.defaultStartTime ?? DEFAULT_START_TIME,
   sortOrder: input.sortOrder ?? existingCount,
   isActive: input.isActive ?? true,
   createdAt: input.createdAt ?? new Date(),
+})
+
+const normalizeExistingEmployeeRecord = (employee: Employee & { exportLogo?: string }): Employee => ({
+  id: employee.id,
+  name: normalizeString(employee.name),
+  exportRecipient: normalizeString(employee.exportRecipient),
+  defaultBreakMinutes: clampNonNegativeInteger(employee.defaultBreakMinutes, DEFAULT_BREAK_MINUTES),
+  defaultStartTime: employee.defaultStartTime ?? DEFAULT_START_TIME,
+  sortOrder: clampNonNegativeInteger(employee.sortOrder, 0),
+  isActive: employee.isActive ?? true,
+  createdAt: employee.createdAt ?? new Date(),
 })
 
 export const createClientRecord = (input: NewClientInput): Omit<Client, 'id'> => ({
@@ -213,10 +221,25 @@ export class TimesheetDatabase extends Dexie {
       weekExports: '++id, employeeId, weekStart, weekEnd, exportedAt, format, [employeeId+weekStart+weekEnd]',
     })
 
+    this.version(2)
+      .stores({
+        employees: '++id, name, exportRecipient, sortOrder, isActive, [isActive+sortOrder], createdAt',
+        clients: '++id, name, lastUsedAt',
+        locations: '++id, name',
+        timeEntries: '++id, employeeId, date, [employeeId+date], sortOrder, clientId, clientName',
+        weekExports: '++id, employeeId, weekStart, weekEnd, exportedAt, format, [employeeId+weekStart+weekEnd]',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('employees').toCollection().modify((employee) => {
+          const normalizedEmployee = normalizeExistingEmployeeRecord(employee as Employee & { exportLogo?: string })
+          Object.assign(employee, normalizedEmployee)
+          delete (employee as { exportLogo?: string }).exportLogo
+        })
+      })
+
     this.employees.hook('creating', (_, employee) => {
       employee.name = normalizeString(employee.name)
       employee.exportRecipient = normalizeString(employee.exportRecipient)
-      employee.exportLogo = employee.exportLogo ?? ''
       employee.defaultBreakMinutes = clampNonNegativeInteger(employee.defaultBreakMinutes, DEFAULT_BREAK_MINUTES)
       employee.defaultStartTime = employee.defaultStartTime ?? DEFAULT_START_TIME
       employee.isActive = employee.isActive ?? true

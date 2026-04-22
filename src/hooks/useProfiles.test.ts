@@ -344,7 +344,6 @@ describe('useProfiles Hook', () => {
       await db.employees.add({
         name: 'Direct Add',
         exportRecipient: 'Company',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 999,
@@ -390,7 +389,6 @@ describe('useProfiles Hook', () => {
       })
 
       const originalProfile = result.current.profiles.find((p) => p.id === profileId)!
-      const originalLogo = originalProfile.exportLogo
       const originalRecipient = originalProfile.exportRecipient
 
       await act(async () => {
@@ -402,7 +400,6 @@ describe('useProfiles Hook', () => {
       await waitFor(() => {
         const updated = result.current.profiles.find((p) => p.id === profileId)
         expect(updated?.name).toBe('Updated Only Name')
-        expect(updated?.exportLogo).toBe(originalLogo)
         expect(updated?.exportRecipient).toBe(originalRecipient)
       })
     })

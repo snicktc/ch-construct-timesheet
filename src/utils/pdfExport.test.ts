@@ -1,4 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mockGetDefaultLogoPathForRecipient = vi.fn((recipient: string) => {
+  if (recipient === 'CH Construct') {
+    return 'logos/logo_CH-Construct.jpg'
+  }
+
+  if (recipient === 'VBW') {
+    return 'logos/logo_VBW.png'
+  }
+
+  return ''
+})
 
 const pdfMockState = vi.hoisted(() => {
   const autoTableMock = vi.fn()
@@ -54,12 +66,52 @@ vi.mock('jspdf-autotable', () => ({
   },
 }))
 
+vi.mock('./logoUtils', () => ({
+  getDefaultLogoPathForRecipient: (recipient: string) => mockGetDefaultLogoPathForRecipient(recipient),
+}))
+
 import { generateTimesheetPdf } from './pdfExport'
 
 describe('generateTimesheetPdf', () => {
+  const originalCreateElement = document.createElement.bind(document)
+
   beforeEach(() => {
     pdfMockState.jsPdfInstances.length = 0
     pdfMockState.autoTableMock.mockReset()
+    mockGetDefaultLogoPathForRecipient.mockClear()
+
+    class MockImage {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      naturalWidth = 200
+      naturalHeight = 100
+      width = 200
+      height = 100
+      crossOrigin: string | null = null
+
+      set src(_: string) {
+        this.onload?.()
+      }
+    }
+
+    vi.stubGlobal('Image', MockImage)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({ drawImage: vi.fn() }),
+          toDataURL: () => 'data:image/png;base64,generated-logo',
+        } as unknown as HTMLCanvasElement
+      }
+
+      return originalCreateElement(tagName)
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('returns a sanitized filename and fortnight metadata', async () => {
@@ -68,7 +120,6 @@ describe('generateTimesheetPdf', () => {
         id: 1,
         name: 'Milan Test',
         exportRecipient: 'CH Construct',
-        exportLogo: 'data:image/png;base64,logo',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,
@@ -101,6 +152,7 @@ describe('generateTimesheetPdf', () => {
     expect(pdfMockState.autoTableMock).toHaveBeenCalledTimes(3)
     expect(pdfMockState.jsPdfInstances[0]?.addImage).toHaveBeenCalled()
     expect(pdfMockState.jsPdfInstances[0]?.text).toHaveBeenCalledWith('WERKURENREGISTRATIE', expect.any(Number), 18)
+    expect(mockGetDefaultLogoPathForRecipient).toHaveBeenCalledWith('CH Construct')
   })
 
   it('generates a normal fortnight PDF within a basic performance budget', async () => {
@@ -125,8 +177,7 @@ describe('generateTimesheetPdf', () => {
       employee: {
         id: 1,
         name: 'Milan Test',
-        exportRecipient: 'CH Construct',
-        exportLogo: 'data:image/png;base64,logo',
+        exportRecipient: 'VBW',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,
@@ -142,5 +193,6 @@ describe('generateTimesheetPdf', () => {
     expect(result.fileName).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
     expect(result.pdfBlob).toBeInstanceOf(Blob)
     expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
+    expect(mockGetDefaultLogoPathForRecipient).toHaveBeenCalledWith('VBW')
   })
 })

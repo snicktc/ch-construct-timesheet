@@ -13,7 +13,6 @@ test('can repeat the previous workday', async ({ page }) => {
         id: 1,
         name: 'Milan',
         exportRecipient: 'CH Construct',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,

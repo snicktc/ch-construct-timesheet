@@ -9,8 +9,6 @@ const mockUseProfiles = vi.fn()
 const mockDownloadBackupFile = vi.fn()
 const mockImportAllDataFromText = vi.fn()
 const mockClearAllAppData = vi.fn()
-const mockGetDefaultLogoForRecipient = vi.fn()
-const mockResizeImageToDataUrl = vi.fn()
 const mockRequestNotificationPermission = vi.fn()
 const mockSaveNotificationSettings = vi.fn()
 const mockShowAppNotification = vi.fn()
@@ -23,11 +21,6 @@ vi.mock('../utils/dataTransfer', () => ({
   clearAllAppData: () => mockClearAllAppData(),
   downloadBackupFile: () => mockDownloadBackupFile(),
   importAllDataFromText: (...args: unknown[]) => mockImportAllDataFromText(...args),
-}))
-
-vi.mock('../utils/logoUtils', () => ({
-  getDefaultLogoForRecipient: (...args: unknown[]) => mockGetDefaultLogoForRecipient(...args),
-  resizeImageToDataUrl: (...args: unknown[]) => mockResizeImageToDataUrl(...args),
 }))
 
 vi.mock('../utils/notifications', async () => {
@@ -50,7 +43,6 @@ const profile: Employee = {
   id: 1,
   name: 'Milan',
   exportRecipient: 'CH Construct',
-  exportLogo: '',
   defaultBreakMinutes: 45,
   defaultStartTime: '06:30',
   sortOrder: 0,
@@ -71,13 +63,10 @@ describe('SettingsPage', () => {
     mockDownloadBackupFile.mockReset()
     mockImportAllDataFromText.mockReset()
     mockClearAllAppData.mockReset()
-    mockGetDefaultLogoForRecipient.mockReset()
-    mockResizeImageToDataUrl.mockReset()
     mockRequestNotificationPermission.mockReset()
     mockSaveNotificationSettings.mockReset()
     mockShowAppNotification.mockReset()
     mockRequestNotificationPermission.mockResolvedValue('granted')
-    mockGetDefaultLogoForRecipient.mockResolvedValue('data:image/png;base64,default')
     mockShowAppNotification.mockResolvedValue(undefined)
     vi.spyOn(window.location, 'reload').mockImplementation(() => undefined)
   })
@@ -102,7 +91,7 @@ describe('SettingsPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Nieuw profiel' })
 
     await user.type(within(dialog).getByLabelText('Naam'), 'Kevin')
-    await user.type(within(dialog).getByLabelText('Export naar'), 'VBW')
+    await user.selectOptions(within(dialog).getByLabelText('Export naar'), 'VBW')
     await user.click(within(dialog).getByRole('button', { name: 'Opslaan' }))
 
     await waitFor(() => {
@@ -110,7 +99,40 @@ describe('SettingsPage', () => {
         expect.objectContaining({
           name: 'Kevin',
           exportRecipient: 'VBW',
-          exportLogo: 'data:image/png;base64,default',
+        }),
+      )
+    })
+  })
+
+  it('updates an existing profile from CH Construct to VBW', async () => {
+    const user = userEvent.setup()
+    const updateProfile = vi.fn().mockResolvedValue(undefined)
+    mockUseProfiles.mockReturnValue({
+      profiles: [profile],
+      loading: false,
+      createProfile: vi.fn(),
+      updateProfile,
+      setProfileActiveState: vi.fn(),
+      deleteProfile: vi.fn(),
+    })
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Profiel bewerken' })
+
+    expect(within(dialog).queryByRole('button', { name: 'Upload logo' })).not.toBeInTheDocument()
+    await user.selectOptions(within(dialog).getByLabelText('Export naar'), 'VBW')
+    await user.click(within(dialog).getByRole('button', { name: 'Opslaan' }))
+
+    await waitFor(() => {
+      expect(updateProfile).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          name: 'Milan',
+          exportRecipient: 'VBW',
         }),
       )
     })

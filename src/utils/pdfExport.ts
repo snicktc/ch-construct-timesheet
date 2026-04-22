@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 import type { Employee, TimeEntry } from '../db/database'
+import { getDefaultLogoPathForRecipient } from './logoUtils'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from './timeCalc'
 import {
   formatDateKey,
@@ -34,11 +35,6 @@ const detectImageFormat = (dataUrl: string) => {
   }
 
   return 'JPEG'
-}
-
-const DEFAULT_LOGO_PATHS: Record<string, string> = {
-  'ch construct': 'logos/logo_CH-Construct.jpg',
-  vbw: 'logos/logo_VBW.png',
 }
 
 type LogoResult = { dataUrl: string; width: number; height: number }
@@ -115,13 +111,13 @@ const addHeader = async (
   periodStart: Date,
   periodEnd: Date,
 ) => {
-  let logoDataUrl = employee.exportLogo || ''
+  let logoDataUrl = ''
   let logoNaturalWidth = 0
   let logoNaturalHeight = 0
 
   if (!logoDataUrl) {
     const baseUrl = import.meta.env.BASE_URL
-    const logoPath = DEFAULT_LOGO_PATHS[employee.exportRecipient.trim().toLowerCase()]
+    const logoPath = getDefaultLogoPathForRecipient(employee.exportRecipient)
 
     if (logoPath) {
       const result = await loadLogoViaCanvas(`${baseUrl}${logoPath}`)

@@ -51,8 +51,7 @@ export async function resizeImageToDataUrl(file: File, maxWidth = MAX_LOGO_WIDTH
 }
 
 export async function getDefaultLogoForRecipient(exportRecipient: string) {
-  const normalizedRecipient = exportRecipient.trim().toLowerCase()
-  const logoPath = DEFAULT_LOGO_BY_RECIPIENT[normalizedRecipient]
+  const logoPath = getDefaultLogoPathForRecipient(exportRecipient)
 
   if (!logoPath) {
     return ''
@@ -80,4 +79,8 @@ export async function getDefaultLogoForRecipient(exportRecipient: string) {
     reader.onerror = () => reject(new Error('Standaardlogo omzetten mislukt.'))
     reader.readAsDataURL(blob)
   })
+}
+
+export function getDefaultLogoPathForRecipient(exportRecipient: string) {
+  return DEFAULT_LOGO_BY_RECIPIENT[exportRecipient.trim().toLowerCase()] ?? ''
 }

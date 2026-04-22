@@ -4,7 +4,6 @@ type SeedEmployee = {
   id: number
   name: string
   exportRecipient: string
-  exportLogo: string
   defaultBreakMinutes: number
   defaultStartTime: string
   sortOrder: number

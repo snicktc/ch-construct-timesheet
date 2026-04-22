@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
   TimesheetDatabase,
@@ -30,7 +31,6 @@ describe('Database Record Creation Functions', () => {
 
       expect(record.name).toBe('Jan Janssen')
       expect(record.exportRecipient).toBe('CH Construct')
-      expect(record.exportLogo).toBe('')
       expect(record.defaultBreakMinutes).toBe(DEFAULT_BREAK_MINUTES)
       expect(record.defaultStartTime).toBe(DEFAULT_START_TIME)
       expect(record.sortOrder).toBe(0)
@@ -54,7 +54,6 @@ describe('Database Record Creation Functions', () => {
       const input: NewEmployeeInput = {
         name: 'Piet Pietersen',
         exportRecipient: 'VBW',
-        exportLogo: 'base64logo...',
         defaultBreakMinutes: 30,
         defaultStartTime: '07:00',
         sortOrder: 5,
@@ -64,7 +63,6 @@ describe('Database Record Creation Functions', () => {
 
       const record = createEmployeeRecord(input, 0)
 
-      expect(record.exportLogo).toBe('base64logo...')
       expect(record.defaultBreakMinutes).toBe(30)
       expect(record.defaultStartTime).toBe('07:00')
       expect(record.sortOrder).toBe(5)
@@ -416,11 +414,43 @@ describe('Database Hooks Integration', () => {
   })
 
   describe('Employee Hooks', () => {
+    it('should remove legacy exportLogo from existing local profiles during upgrade', async () => {
+      await db.close()
+      await db.delete()
+
+      const legacyDb = new Dexie('timesheet')
+      legacyDb.version(1).stores({
+        employees: '++id, name, exportRecipient, sortOrder, isActive, [isActive+sortOrder], createdAt',
+        clients: '++id, name, lastUsedAt',
+        locations: '++id, name',
+        timeEntries: '++id, employeeId, date, [employeeId+date], sortOrder, clientId, clientName',
+        weekExports: '++id, employeeId, weekStart, weekEnd, exportedAt, format, [employeeId+weekStart+weekEnd]',
+      })
+      await legacyDb.open()
+      await legacyDb.table('employees').add({
+        name: 'Legacy User',
+        exportRecipient: 'VBW',
+        exportLogo: 'data:image/png;base64,old-logo',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date(),
+      })
+      await legacyDb.close()
+
+      db = new TimesheetDatabase()
+      await db.open()
+
+      const employee = await db.employees.where('name').equals('Legacy User').first()
+      expect(employee?.exportRecipient).toBe('VBW')
+      expect('exportLogo' in (employee ?? {})).toBe(false)
+    })
+
     it('should normalize data on create', async () => {
       const id = await db.employees.add({
         name: '  Jan Janssen  ',
         exportRecipient: '  CH Construct  ',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,
@@ -437,7 +467,6 @@ describe('Database Hooks Integration', () => {
       const id = await db.employees.add({
         name: 'Test',
         exportRecipient: 'Test',
-        exportLogo: '',
         defaultBreakMinutes: 0,
         defaultStartTime: '',
         sortOrder: 0,
@@ -454,7 +483,6 @@ describe('Database Hooks Integration', () => {
       const id = await db.employees.add({
         name: 'Original',
         exportRecipient: 'Original',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,

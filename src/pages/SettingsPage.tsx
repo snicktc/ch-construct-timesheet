@@ -11,7 +11,6 @@ import {
   downloadBackupFile,
   importAllDataFromText,
 } from '../utils/dataTransfer'
-import { getDefaultLogoForRecipient, resizeImageToDataUrl } from '../utils/logoUtils'
 import {
   getNotificationSettings,
   getNotificationSupport,
@@ -30,7 +29,6 @@ type SettingsPageProps = {
 type ProfileDraft = {
   name: string
   exportRecipient: string
-  exportLogo: string
   defaultBreakMinutes: number
   defaultStartTime: string
   isActive: boolean
@@ -39,11 +37,12 @@ type ProfileDraft = {
 const EMPTY_DRAFT: ProfileDraft = {
   name: '',
   exportRecipient: '',
-  exportLogo: '',
   defaultBreakMinutes: 45,
   defaultStartTime: '06:30',
   isActive: true,
 }
+
+const EXPORT_RECIPIENT_OPTIONS = ['CH Construct', 'VBW'] as const
 
 export function SettingsPage({
   activeEmployeeId,
@@ -77,11 +76,6 @@ export function SettingsPage({
 
   const notificationSupport = getNotificationSupport()
   const importInputRef = useRef<HTMLInputElement | null>(null)
-  const logoInputRef = useRef<HTMLInputElement | null>(null)
-  const exportRecipientOptions = useMemo(
-    () => [...new Set(profiles.map((profile) => profile.exportRecipient).filter(Boolean))],
-    [profiles],
-  )
 
   useEffect(() => {
     saveNotificationSettings(notificationSettings)
@@ -118,7 +112,6 @@ export function SettingsPage({
     setDraft({
       name: profile.name,
       exportRecipient: profile.exportRecipient,
-      exportLogo: profile.exportLogo,
       defaultBreakMinutes: profile.defaultBreakMinutes,
       defaultStartTime: profile.defaultStartTime,
       isActive: profile.isActive,
@@ -140,10 +133,8 @@ export function SettingsPage({
       try {
         setIsSaving(true)
         setErrorMessage('')
-        const resolvedLogo = draft.exportLogo || (await getDefaultLogoForRecipient(draft.exportRecipient))
         const profileInput = {
           ...draft,
-          exportLogo: resolvedLogo,
         }
 
         if (editingProfileId) {
@@ -264,41 +255,6 @@ export function SettingsPage({
       setErrorMessage(error instanceof Error ? error.message : 'Data wissen mislukt.')
     }
   }, [])
-
-  const handleLogoFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-
-    if (!file) {
-      return
-    }
-
-    try {
-      setErrorMessage('')
-      const resizedLogo = await resizeImageToDataUrl(file)
-      setDraft((current) => ({ ...current, exportLogo: resizedLogo }))
-      setSuccessMessage('Logo geladen.')
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Logo upload mislukt.')
-    } finally {
-      event.target.value = ''
-    }
-  }, [])
-
-  const handleLoadDefaultLogo = useCallback(async () => {
-    try {
-      setErrorMessage('')
-      const defaultLogo = await getDefaultLogoForRecipient(draft.exportRecipient)
-
-      if (!defaultLogo) {
-        throw new Error('Geen standaardlogo beschikbaar voor deze bestemmeling.')
-      }
-
-      setDraft((current) => ({ ...current, exportLogo: defaultLogo }))
-      setSuccessMessage('Standaardlogo geladen.')
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Standaardlogo laden mislukt.')
-    }
-  }, [draft.exportRecipient])
 
   const moveProfile = useCallback(
     async (profile: Employee, direction: -1 | 1) => {
@@ -437,64 +393,20 @@ export function SettingsPage({
 
           <div className="field">
             <label htmlFor="employee-recipient">Export naar</label>
-            <input
+            <select
               id="employee-recipient"
               value={draft.exportRecipient}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, exportRecipient: event.target.value }))
-              }
-              list="export-recipient-options"
-              placeholder="VBW"
-            />
-            <datalist id="export-recipient-options">
-              {exportRecipientOptions.map((option) => (
-                <option key={option} value={option} />
+              onChange={(event) => setDraft((current) => ({ ...current, exportRecipient: event.target.value }))}
+            >
+              <option value="" disabled>
+                Kies een bestemmeling
+              </option>
+              {EXPORT_RECIPIENT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
               ))}
-            </datalist>
-          </div>
-
-          <div className="field">
-            <label>Logo</label>
-            <div className="button-row">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => logoInputRef.current?.click()}
-              >
-                Upload logo
-              </button>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => void handleLoadDefaultLogo()}
-              >
-                Laad standaardlogo
-              </button>
-              {draft.exportLogo ? (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setDraft((current) => ({ ...current, exportLogo: '' }))}
-                >
-                  Verwijder logo
-                </button>
-              ) : null}
-            </div>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="visually-hidden"
-              onChange={(event) => void handleLogoFileChange(event)}
-            />
-            {draft.exportLogo ? (
-              <div className="logo-preview-card">
-                <img className="logo-preview-image" src={draft.exportLogo} alt="Logo preview" />
-              </div>
-            ) : (
-              <span className="muted-text">Nog geen logo geselecteerd.</span>
-            )}
+            </select>
           </div>
 
           <div className="two-column-grid">
@@ -573,7 +485,6 @@ export function SettingsPage({
                   Pauze: {profile.defaultBreakMinutes} min · Start: {profile.defaultStartTime} ·{' '}
                   {profile.isActive ? 'Actief' : 'Inactief'}
                 </p>
-                <p className="muted-text">Logo: {profile.exportLogo ? 'Ja' : 'Nee'}</p>
               </div>
 
               <div className="button-row client-card-actions">

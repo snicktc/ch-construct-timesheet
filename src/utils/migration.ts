@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 
 import type { Client, Employee, Location, TimeEntry, WeekExport } from '../db/database'
-import { db } from '../db/database'
+import { createEmployeeRecord, db } from '../db/database'
 import {
   ACTIVE_PROFILE_STORAGE_KEY,
   LEGACY_ACTIVE_PROFILE_STORAGE_KEY,
@@ -17,7 +17,7 @@ import {
 } from './storageKeys'
 
 class LegacyTimesheetDatabase extends Dexie {
-  employees!: EntityTable<Employee, 'id'>
+  employees!: EntityTable<Employee & { exportLogo?: string }, 'id'>
   clients!: EntityTable<Client, 'id'>
   locations!: EntityTable<Location, 'id'>
   timeEntries!: EntityTable<TimeEntry, 'id'>
@@ -119,7 +119,20 @@ export async function migrateLegacyTimesheetData() {
 
         await db.transaction('rw', [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports], async () => {
           if (employees.length > 0) {
-            await db.employees.bulkPut(employees)
+            await db.employees.bulkPut(
+              employees.map((employee) => ({
+                ...createEmployeeRecord({
+                  name: employee.name,
+                  exportRecipient: employee.exportRecipient,
+                  defaultBreakMinutes: employee.defaultBreakMinutes,
+                  defaultStartTime: employee.defaultStartTime,
+                  sortOrder: employee.sortOrder,
+                  isActive: employee.isActive,
+                  createdAt: employee.createdAt,
+                }),
+                id: employee.id,
+              })),
+            )
           }
 
           if (clients.length > 0) {

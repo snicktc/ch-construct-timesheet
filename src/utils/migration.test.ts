@@ -51,7 +51,10 @@ describe('migrateLegacyTimesheetData', () => {
   it('migrates legacy storage and database into an empty target database', async () => {
     const legacyDb = createLegacyDb()
     await legacyDb.open()
-    await legacyDb.table('employees').add(createEmployeeRecord({ name: 'Legacy User', exportRecipient: 'VBW' }))
+    await legacyDb.table('employees').add({
+      ...createEmployeeRecord({ name: 'Legacy User', exportRecipient: 'VBW' }),
+      exportLogo: 'data:image/png;base64,old-logo',
+    })
     await legacyDb.close()
 
     window.localStorage.setItem(LEGACY_ACTIVE_PROFILE_STORAGE_KEY, '7')
@@ -63,6 +66,7 @@ describe('migrateLegacyTimesheetData', () => {
 
     expect(await db.employees.count()).toBe(1)
     expect((await db.employees.toArray())[0]?.name).toBe('Legacy User')
+    expect('exportLogo' in ((await db.employees.toArray())[0] ?? {})).toBe(false)
     expect(window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY)).toBe('7')
     expect(window.localStorage.getItem(NOTIFICATION_SETTINGS_STORAGE_KEY)).toBe('{"dailyReminderEnabled":false}')
     expect(window.localStorage.getItem(LAST_DAILY_NOTIFICATION_KEY)).toBe('2026-04-17')

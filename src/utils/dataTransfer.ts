@@ -1,33 +1,67 @@
 import type { Client, Employee, Location, TimeEntry, WeekExport } from '../db/database'
-import { db } from '../db/database'
+import { createEmployeeRecord, db } from '../db/database'
 import { APP_STORAGE_KEYS, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
 
+type BackupEmployeeV1 = Employee & {
+  exportLogo?: string
+  createdAt: Date | string
+}
+
+type BackupEmployeeV2 = Employee & {
+  createdAt: Date | string
+}
+
+type BackupClient = Client & {
+  lastUsedAt: Date | string | null
+}
+
+type BackupWeekExport = WeekExport & {
+  exportedAt: Date | string
+}
+
 type AppBackupData = {
-  version: 1
+  version: 2
   exportedAt: string
   appState: {
     localStorage: Record<string, string>
   }
   data: {
-    employees: Employee[]
-    clients: Client[]
+    employees: BackupEmployeeV2[]
+    clients: BackupClient[]
     locations: Location[]
     timeEntries: TimeEntry[]
-    weekExports: WeekExport[]
+    weekExports: BackupWeekExport[]
   }
 }
 
-const reviveEmployee = (employee: Employee): Employee => ({
-  ...employee,
-  createdAt: new Date(employee.createdAt),
+type LegacyAppBackupData = Omit<AppBackupData, 'version' | 'data'> & {
+  version: 1
+  data: Omit<AppBackupData['data'], 'employees'> & {
+    employees: BackupEmployeeV1[]
+  }
+}
+
+type SupportedAppBackupData = AppBackupData | LegacyAppBackupData
+
+const reviveEmployee = (employee: BackupEmployeeV1 | BackupEmployeeV2): Employee => ({
+  ...createEmployeeRecord({
+    name: employee.name,
+    exportRecipient: employee.exportRecipient,
+    defaultBreakMinutes: employee.defaultBreakMinutes,
+    defaultStartTime: employee.defaultStartTime,
+    sortOrder: employee.sortOrder,
+    isActive: employee.isActive,
+    createdAt: new Date(employee.createdAt),
+  }),
+  ...(employee.id !== undefined ? { id: employee.id } : {}),
 })
 
-const reviveClient = (client: Client): Client => ({
+const reviveClient = (client: BackupClient): Client => ({
   ...client,
   lastUsedAt: client.lastUsedAt ? new Date(client.lastUsedAt) : null,
 })
 
-const reviveWeekExport = (weekExport: WeekExport): WeekExport => ({
+const reviveWeekExport = (weekExport: BackupWeekExport): WeekExport => ({
   ...weekExport,
   exportedAt: new Date(weekExport.exportedAt),
 })
@@ -58,7 +92,7 @@ export async function exportAllData() {
   }
 
   const backup: AppBackupData = {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     appState: {
       localStorage: localStorageState,
@@ -107,15 +141,15 @@ export async function clearAllAppData() {
 }
 
 export async function importAllDataFromText(jsonText: string) {
-  let parsed: AppBackupData
+  let parsed: SupportedAppBackupData
 
   try {
-    parsed = JSON.parse(jsonText) as AppBackupData
+    parsed = JSON.parse(jsonText) as SupportedAppBackupData
   } catch {
     throw new Error('Backupbestand is geen geldige JSON.')
   }
 
-  if (parsed.version !== 1 || !parsed.data) {
+  if ((parsed.version !== 1 && parsed.version !== 2) || !parsed.data) {
     throw new Error('Onbekend backupformaat.')
   }
 

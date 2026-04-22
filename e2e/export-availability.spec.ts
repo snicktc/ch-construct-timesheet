@@ -16,7 +16,6 @@ test('shows the export banner for a complete fortnight', async ({ page }) => {
         id: 1,
         name: 'Milan',
         exportRecipient: 'CH Construct',
-        exportLogo: '',
         defaultBreakMinutes: 45,
         defaultStartTime: '06:30',
         sortOrder: 0,
