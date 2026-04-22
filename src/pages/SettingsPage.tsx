@@ -381,9 +381,6 @@ export function SettingsPage({
       <Sheet open={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={editingProfile ? 'Profiel bewerken' : 'Nieuw profiel'}>
         <div className="section-heading">
           <h2>{editingProfile ? 'Profiel bewerken' : 'Nieuw profiel'}</h2>
-          <button type="button" className="secondary-button" onClick={() => setIsEditorOpen(false)}>
-            Sluiten
-          </button>
         </div>
 
         <form className="entry-form" onSubmit={handleSave}>
@@ -431,6 +428,7 @@ export function SettingsPage({
               <label htmlFor="employee-break">Standaard pauze</label>
               <input
                 id="employee-break"
+                className="compact-number-input"
                 type="number"
                 min="0"
                 value={draft.defaultBreakMinutes}
@@ -461,14 +459,14 @@ export function SettingsPage({
             <div className="toggle-row">
               <button
                 type="button"
-                className={`toggle-button${draft.isActive ? ' is-active' : ''}`}
+                className={`toggle-button toggle-button-status${draft.isActive ? ' is-active' : ''}`}
                 onClick={() => setDraft((current) => ({ ...current, isActive: true }))}
               >
                 Actief
               </button>
               <button
                 type="button"
-                className={`toggle-button${!draft.isActive ? ' is-active' : ''}`}
+                className={`toggle-button toggle-button-status${!draft.isActive ? ' is-active' : ''}`}
                 onClick={() => setDraft((current) => ({ ...current, isActive: false }))}
               >
                 Inactief
@@ -477,6 +475,9 @@ export function SettingsPage({
           </div>
 
           <div className="button-row">
+            <button type="button" className="secondary-button" onClick={() => setIsEditorOpen(false)}>
+              Annuleer
+            </button>
             <button className="primary-button" type="submit" disabled={isSaving}>
               {isSaving ? 'Opslaan...' : 'Opslaan'}
             </button>

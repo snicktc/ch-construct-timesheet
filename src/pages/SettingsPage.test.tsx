@@ -123,7 +123,7 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
     const dialog = await screen.findByRole('dialog', { name: 'Profiel bewerken' })
 
-    expect(within(dialog).queryByRole('button', { name: 'Upload logo' })).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: 'Sluiten' })).not.toBeInTheDocument()
     await user.selectOptions(within(dialog).getByLabelText('Export naar'), 'VBW')
     await user.click(within(dialog).getByRole('button', { name: 'Opslaan' }))
 
@@ -159,6 +159,23 @@ describe('SettingsPage', () => {
       'src',
       expect.stringContaining('logos/logo_VBW.png'),
     )
+  })
+
+  it('closes the editor when cancel is clicked', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Profiel bewerken' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Annuleer' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Profiel bewerken' })).not.toBeInTheDocument()
+    })
   })
 
   it('requests notification permission and triggers a test notification', async () => {
