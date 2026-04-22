@@ -11,6 +11,7 @@ import {
   downloadBackupFile,
   importAllDataFromText,
 } from '../utils/dataTransfer'
+import { getDefaultLogoPathForRecipient } from '../utils/logoUtils'
 import {
   getNotificationSettings,
   getNotificationSupport,
@@ -98,6 +99,11 @@ export function SettingsPage({
     () => profiles.find((profile) => profile.id === editingProfileId) ?? null,
     [profiles, editingProfileId],
   )
+  const selectedLogoPath = useMemo(
+    () => getDefaultLogoPathForRecipient(draft.exportRecipient),
+    [draft.exportRecipient],
+  )
+  const selectedLogoSrc = selectedLogoPath ? `${import.meta.env.BASE_URL}${selectedLogoPath}` : ''
 
   const startCreate = useCallback(() => {
     setEditingProfileId(null)
@@ -407,6 +413,17 @@ export function SettingsPage({
                 </option>
               ))}
             </select>
+            {selectedLogoSrc ? (
+              <div className="logo-preview-card">
+                <img
+                  className="logo-preview-image"
+                  src={selectedLogoSrc}
+                  alt={`Logo ${draft.exportRecipient}`}
+                />
+              </div>
+            ) : (
+              <span className="muted-text">Geen logo beschikbaar voor deze bestemmeling.</span>
+            )}
           </div>
 
           <div className="two-column-grid">

@@ -138,6 +138,29 @@ describe('SettingsPage', () => {
     })
   })
 
+  it('shows the company logo preview and updates it when export recipient changes', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Profiel bewerken' })
+
+    expect(within(dialog).getByAltText('Logo CH Construct')).toHaveAttribute(
+      'src',
+      expect.stringContaining('logos/logo_CH-Construct.jpg'),
+    )
+
+    await user.selectOptions(within(dialog).getByLabelText('Export naar'), 'VBW')
+
+    expect(within(dialog).getByAltText('Logo VBW')).toHaveAttribute(
+      'src',
+      expect.stringContaining('logos/logo_VBW.png'),
+    )
+  })
+
   it('requests notification permission and triggers a test notification', async () => {
     const user = userEvent.setup()
 
