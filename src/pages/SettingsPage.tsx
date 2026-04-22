@@ -6,6 +6,7 @@ import { Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import type { Employee } from '../db/database'
 import { useProfiles } from '../hooks/useProfiles'
+import { installAppUpdate } from '../utils/appUpdate'
 import {
   clearAllAppData,
   downloadBackupFile,
@@ -62,6 +63,7 @@ export function SettingsPage({
   const [draft, setDraft] = useState<ProfileDraft>(EMPTY_DRAFT)
   const [errorMessage, setErrorMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [profilePendingDelete, setProfilePendingDelete] = useState<Employee | null>(null)
@@ -282,6 +284,28 @@ export function SettingsPage({
     },
     [profiles, updateProfile],
   )
+
+  const handleAppUpdate = useCallback(async () => {
+    try {
+      setIsUpdating(true)
+      setErrorMessage('')
+      setSuccessMessage('')
+
+      const updated = await installAppUpdate()
+
+      if (!updated) {
+        setSuccessMessage('De app is al up-to-date.')
+        return
+      }
+
+      setSuccessMessage('Update gevonden. De app wordt herladen.')
+      window.setTimeout(() => window.location.reload(), 300)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Update ophalen mislukt.')
+    } finally {
+      setIsUpdating(false)
+    }
+  }, [])
 
   return (
     <section className="today-page">
@@ -669,7 +693,7 @@ export function SettingsPage({
       </section>
 
       <section className="panel muted-text">
-        <div>Versie 1.0.0</div>
+        <div>Versie {__APP_VERSION__}</div>
         <div style={{ fontSize: '0.85em', marginTop: '0.25rem' }}>
           Laatste update: {new Date(__BUILD_TIMESTAMP__).toLocaleString('nl-NL', {
             day: '2-digit',
@@ -678,6 +702,16 @@ export function SettingsPage({
             hour: '2-digit',
             minute: '2-digit',
           })}
+        </div>
+        <div className="button-row top-gap">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void handleAppUpdate()}
+            disabled={isUpdating}
+          >
+            {isUpdating ? 'Update ophalen...' : 'Update'}
+          </button>
         </div>
       </section>
     </section>

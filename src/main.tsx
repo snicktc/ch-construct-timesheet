@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './ErrorBoundary'
+import { setServiceWorkerRegistration } from './utils/appUpdate'
 import { migrateLegacyTimesheetData } from './utils/migration'
 
 function renderApp() {
@@ -25,6 +26,9 @@ async function bootstrap() {
 
   registerSW({
     immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      setServiceWorkerRegistration(registration)
+    },
   })
 
   renderApp()

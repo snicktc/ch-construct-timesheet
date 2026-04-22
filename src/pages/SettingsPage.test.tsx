@@ -6,6 +6,7 @@ import { type Employee } from '../db/database'
 import { SettingsPage } from './SettingsPage'
 
 const mockUseProfiles = vi.fn()
+const mockInstallAppUpdate = vi.fn()
 const mockDownloadBackupFile = vi.fn()
 const mockImportAllDataFromText = vi.fn()
 const mockClearAllAppData = vi.fn()
@@ -15,6 +16,10 @@ const mockShowAppNotification = vi.fn()
 
 vi.mock('../hooks/useProfiles', () => ({
   useProfiles: () => mockUseProfiles(),
+}))
+
+vi.mock('../utils/appUpdate', () => ({
+  installAppUpdate: (...args: unknown[]) => mockInstallAppUpdate(...args),
 }))
 
 vi.mock('../utils/dataTransfer', () => ({
@@ -63,9 +68,11 @@ describe('SettingsPage', () => {
     mockDownloadBackupFile.mockReset()
     mockImportAllDataFromText.mockReset()
     mockClearAllAppData.mockReset()
+    mockInstallAppUpdate.mockReset()
     mockRequestNotificationPermission.mockReset()
     mockSaveNotificationSettings.mockReset()
     mockShowAppNotification.mockReset()
+    mockInstallAppUpdate.mockResolvedValue(false)
     mockRequestNotificationPermission.mockResolvedValue('granted')
     mockShowAppNotification.mockResolvedValue(undefined)
     vi.spyOn(window.location, 'reload').mockImplementation(() => undefined)
@@ -215,5 +222,63 @@ describe('SettingsPage', () => {
     await waitFor(() => {
       expect(mockImportAllDataFromText).toHaveBeenCalledWith('{"version":1,"data":{}}')
     })
+  })
+
+  it('shows the build version and triggers a manual app update', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    expect(screen.getByText('Versie 1.0.0-test')).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+
+    await waitFor(() => {
+      expect(mockInstallAppUpdate).toHaveBeenCalled()
+    })
+
+    expect(await screen.findByText('De app is al up-to-date.')).toBeVisible()
+  })
+
+  it('shows loading state and reloads after a found update', async () => {
+    const user = userEvent.setup()
+    let resolveUpdate: ((value: boolean) => void) | null = null
+    mockInstallAppUpdate.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveUpdate = resolve
+        }),
+    )
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+
+    expect(screen.getByRole('button', { name: 'Update ophalen...' })).toBeDisabled()
+
+    resolveUpdate?.(true)
+
+    expect(await screen.findByText('Update gevonden. De app wordt herladen.')).toBeVisible()
+
+    await waitFor(() => {
+      expect(window.location.reload).toHaveBeenCalled()
+    })
+  })
+
+  it('shows an error when the manual app update fails', async () => {
+    const user = userEvent.setup()
+    mockInstallAppUpdate.mockRejectedValue(new Error('Update mislukt.'))
+
+    render(
+      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Update' }))
+
+    expect(await screen.findByText('Update mislukt.')).toBeVisible()
   })
 })

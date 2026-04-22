@@ -8,6 +8,11 @@ Object.defineProperty(globalThis, '__BUILD_TIMESTAMP__', {
   value: '2026-04-17T00:00:00.000Z',
 })
 
+Object.defineProperty(globalThis, '__APP_VERSION__', {
+  configurable: true,
+  value: '1.0.0-test',
+})
+
 // Cleanup after each test
 afterEach(() => {
   cleanup()
