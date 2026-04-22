@@ -279,7 +279,7 @@ const addWeekTable = (
 
   autoTable(doc, {
     startY,
-    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/klant', 'Totaal/dag']],
+    head: [[weekTitle, 'Klant', 'Loc.', 'Start', 'Einde', 'Pauze', 'Chauf.', 'Totaal/\nklant', 'Totaal/\ndag']],
     body: body.map((row) => [...row.slice(0, 8), '']),
     foot: [['', '', '', '', '', '', '', 'Subtotaal', formatMinutesAsHours(weekMinutes)]],
     theme: 'grid',
@@ -302,14 +302,14 @@ const addWeekTable = (
     },
     columnStyles: {
       0: { cellWidth: 18 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 20 },
-      3: { cellWidth: 14 },
-      4: { cellWidth: 14 },
-      5: { cellWidth: 12 },
+      1: { cellWidth: 34 },
+      2: { cellWidth: 31 },
+      3: { cellWidth: 15 },
+      4: { cellWidth: 15 },
+      5: { cellWidth: 15 },
       6: { cellWidth: 16 },
-      7: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
-      8: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+      7: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
+      8: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
       if (hookData.section === 'body') {
@@ -455,9 +455,9 @@ export async function generateTimesheetPdf({
     },
     margin: { left: 14 },
     columnStyles: {
-      0: { cellWidth: 112 },
-      1: { cellWidth: 28 },
-      2: { cellWidth: 28, halign: 'right' },
+      0: { cellWidth: 122 },
+      1: { cellWidth: 30, halign: 'right' },
+      2: { cellWidth: 30, halign: 'right' },
     },
   })
 
