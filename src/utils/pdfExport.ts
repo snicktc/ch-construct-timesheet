@@ -281,8 +281,11 @@ const addWeekTable = (
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 9,
-      cellPadding: 2.5,
+      fontSize: 8.5,
+      cellPadding: { top: 1.6, right: 2, bottom: 1.6, left: 2 },
+      minCellHeight: 7,
+      overflow: 'linebreak',
+      valign: 'middle',
       lineColor: [220, 220, 220],
       lineWidth: 0.2,
     },
@@ -290,21 +293,24 @@ const addWeekTable = (
       fillColor: [245, 245, 246],
       textColor: [26, 26, 26],
       fontStyle: 'bold',
+      halign: 'center',
+      valign: 'middle',
     },
     footStyles: {
       fillColor: [245, 245, 246],
       textColor: [26, 26, 26],
       fontStyle: 'bold',
+      valign: 'middle',
     },
     columnStyles: {
       0: { cellWidth: 18 },
-      1: { cellWidth: 34 },
-      2: { cellWidth: 31 },
+      1: { cellWidth: 32 },
+      2: { cellWidth: 29 },
       3: { cellWidth: 15 },
       4: { cellWidth: 15 },
       5: { cellWidth: 15 },
       6: { cellWidth: 16 },
-      7: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
+      7: { cellWidth: 23, halign: 'right', fontStyle: 'bold', overflow: 'visible' },
       8: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
@@ -326,6 +332,20 @@ const addWeekTable = (
           hookData.cell.styles.fontStyle = 'italic'
           hookData.cell.styles.textColor = [107, 114, 128]
         }
+
+        if (hookData.column.index === 8) {
+          hookData.cell.styles.halign = 'right'
+          hookData.cell.styles.valign = 'middle'
+        }
+      }
+
+      if (hookData.section === 'foot' && hookData.column.index === 7) {
+        hookData.cell.styles.overflow = 'visible'
+      }
+
+      if (hookData.section === 'foot' && (hookData.column.index === 7 || hookData.column.index === 8)) {
+        hookData.cell.styles.halign = hookData.column.index === 8 ? 'right' : 'left'
+        hookData.cell.styles.valign = 'middle'
       }
     },
     didDrawCell: (hookData) => {
@@ -419,11 +439,11 @@ export async function generateTimesheetPdf({
 
   await addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
 
-  let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 48)
-  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 8)
+  let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 46)
+  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 6)
 
   autoTable(doc, {
-    startY: currentY + 10,
+    startY: currentY + 6,
     head: [['Klant', 'Dagen', 'Uren']],
     body: summary.map((client) => [
       client.clientName,
@@ -432,10 +452,13 @@ export async function generateTimesheetPdf({
     ]),
     foot: [['TOTAAL 2 WEKEN', String(totalDays), formatMinutesAsHours(totalMinutes)]],
     theme: 'grid',
+    pageBreak: 'avoid',
     styles: {
       font: 'helvetica',
-      fontSize: 10,
-      cellPadding: 3,
+      fontSize: 9,
+      cellPadding: 2.5,
+      minCellHeight: 7,
+      valign: 'middle',
       lineColor: [220, 220, 220],
       lineWidth: 0.2,
     },
@@ -443,11 +466,13 @@ export async function generateTimesheetPdf({
       fillColor: [245, 245, 246],
       textColor: [26, 26, 26],
       fontStyle: 'bold',
+      valign: 'middle',
     },
     footStyles: {
       fillColor: [245, 245, 246],
       textColor: [26, 26, 26],
       fontStyle: 'bold',
+      valign: 'middle',
     },
     margin: { left: 14 },
     columnStyles: {
@@ -463,7 +488,7 @@ export async function generateTimesheetPdf({
     doc.setPage(page)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    doc.text(`pagina ${page}/${pageCount}`, 196, 289, { align: 'right' })
+    doc.text(`pagina ${page}/${pageCount}`, 196, 293, { align: 'right' })
   }
 
   const fileName = `Werkuren_${sanitizeFilePart(employee.name)}_Week_${weekOneNumber}-${weekTwoNumber}.pdf`

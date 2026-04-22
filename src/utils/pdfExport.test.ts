@@ -195,4 +195,73 @@ describe('generateTimesheetPdf', () => {
     expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
     expect(mockGetDefaultLogoPathForRecipient).toHaveBeenCalledWith('VBW')
   })
+
+  it('uses compact table settings that keep the summary together and subtotal readable', async () => {
+    await generateTimesheetPdf({
+      employee: {
+        id: 1,
+        name: 'Milan Test',
+        exportRecipient: 'CH Construct',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      fortnightStart: new Date('2026-04-20T00:00:00.000Z'),
+      entries: [
+        {
+          id: 1,
+          employeeId: 1,
+          date: '2026-04-22',
+          sortOrder: 0,
+          clientId: 1,
+          clientName: 'matys',
+          location: 'Damme',
+          startTime: '06:30',
+          endTime: '14:00',
+          breakMinutes: 30,
+          travelCreditMinutes: 0,
+          isDriver: 'Ja',
+          notes: '',
+        },
+        {
+          id: 2,
+          employeeId: 1,
+          date: '2026-04-22',
+          sortOrder: 1,
+          clientId: 2,
+          clientName: 'PM nation',
+          location: 'Assenede',
+          startTime: '14:00',
+          endTime: '17:00',
+          breakMinutes: 0,
+          travelCreditMinutes: 0,
+          isDriver: 'Ja',
+          notes: '',
+        },
+      ],
+    })
+
+    const weekTableConfig = pdfMockState.autoTableMock.mock.calls[0]?.[1] as {
+      startY: number
+      columnStyles: Record<number, { cellWidth: number }>
+      foot: string[][]
+      styles: { fontSize: number; minCellHeight: number }
+    }
+    const summaryTableConfig = pdfMockState.autoTableMock.mock.calls[2]?.[1] as {
+      startY: number
+      pageBreak: string
+      styles: { fontSize: number; minCellHeight: number }
+    }
+
+    expect(weekTableConfig.startY).toBe(46)
+    expect(weekTableConfig.columnStyles[7]?.cellWidth).toBe(23)
+    expect(weekTableConfig.foot).toEqual([['', '', '', '', '', '', '', 'Subtotaal', '10:00']])
+    expect(weekTableConfig.styles.fontSize).toBe(8.5)
+    expect(weekTableConfig.styles.minCellHeight).toBe(7)
+    expect(summaryTableConfig.pageBreak).toBe('avoid')
+    expect(summaryTableConfig.styles.fontSize).toBe(9)
+    expect(summaryTableConfig.styles.minCellHeight).toBe(7)
+  })
 })
