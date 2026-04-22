@@ -247,6 +247,14 @@ describe('generateTimesheetPdf', () => {
       startY: number
       head: string[][]
       columnStyles: Record<number, { cellWidth: number }>
+      headStyles: { fillColor: number[] }
+      didParseCell: (hookData: {
+        section: string
+        row: { raw: string[]; index: number }
+        column: { index: number }
+        cell: { styles: { fillColor?: number[]; textColor?: number[] } }
+      }) => void
+      footStyles: { fillColor: number[] }
       foot: string[][]
       styles: { fontSize: number; minCellHeight: number }
     }
@@ -269,12 +277,28 @@ describe('generateTimesheetPdf', () => {
       'Totaal/\nklant',
       'Totaal/\ndag',
     ]])
+    expect(weekTableConfig.columnStyles[0]?.cellWidth).toBe(16)
     expect(weekTableConfig.columnStyles[1]?.cellWidth).toBe(42)
     expect(weekTableConfig.columnStyles[2]?.cellWidth).toBe(38)
+    expect(weekTableConfig.columnStyles[6]?.cellWidth).toBe(14)
     expect(weekTableConfig.columnStyles[7]?.cellWidth).toBe(18)
+    expect(weekTableConfig.columnStyles[8]?.cellWidth).toBe(17)
     expect(weekTableConfig.foot).toEqual([['', '', '', '', '', '', '', 'Subtotaal', '10:00']])
+    expect(weekTableConfig.headStyles.fillColor).toEqual([232, 232, 232])
     expect(weekTableConfig.styles.fontSize).toBe(8.4)
     expect(weekTableConfig.styles.minCellHeight).toBe(7)
+
+    const regularRowCell = { styles: {} as { fillColor?: number[]; textColor?: number[] } }
+    weekTableConfig.didParseCell({
+      section: 'body',
+      row: { raw: ['di 21', '—', '', '', '', '', '', '', ''], index: 1 },
+      column: { index: 0 },
+      cell: regularRowCell,
+    })
+    expect(regularRowCell.styles.fillColor).toEqual([235, 242, 250])
+
+    expect(weekTableConfig.footStyles.fillColor).toEqual([232, 232, 232])
+
     expect(summaryTableConfig.pageBreak).toBe('avoid')
     expect(summaryTableConfig.startY).toBe(100)
     expect(summaryTableConfig.columnStyles[0]?.cellWidth).toBe(124)

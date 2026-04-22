@@ -272,6 +272,8 @@ const addWeekTable = (
   }
 
   const dayMergeMap = new Map<number, DayMergeEntry>()
+  const edgeRowFillColor: [number, number, number] = [232, 232, 232]
+  const weekendFillColor: [number, number, number] = [242, 242, 242]
 
   autoTable(doc, {
     startY,
@@ -290,28 +292,28 @@ const addWeekTable = (
       lineWidth: 0.2,
     },
     headStyles: {
-      fillColor: [245, 245, 246],
+      fillColor: edgeRowFillColor,
       textColor: [26, 26, 26],
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
     },
     footStyles: {
-      fillColor: [245, 245, 246],
+      fillColor: edgeRowFillColor,
       textColor: [26, 26, 26],
       fontStyle: 'bold',
       valign: 'middle',
     },
     columnStyles: {
-      0: { cellWidth: 14 },
+      0: { cellWidth: 16 },
       1: { cellWidth: 42 },
       2: { cellWidth: 38 },
-      3: { cellWidth: 13 },
-      4: { cellWidth: 13 },
-      5: { cellWidth: 13 },
-      6: { cellWidth: 12 },
+      3: { cellWidth: 12 },
+      4: { cellWidth: 12 },
+      5: { cellWidth: 12 },
+      6: { cellWidth: 14 },
       7: { cellWidth: 18, halign: 'right', fontStyle: 'bold', overflow: 'visible' },
-      8: { cellWidth: 18, halign: 'right', fontStyle: 'bold' },
+      8: { cellWidth: 17, halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
       if (hookData.section === 'body') {
@@ -321,7 +323,7 @@ const addWeekTable = (
         const isWeekendRow = rowIsWeekend[rowIdx] ?? false
 
         if (isWeekendRow) {
-          hookData.cell.styles.fillColor = [242, 242, 242]
+          hookData.cell.styles.fillColor = weekendFillColor
         } else if (dayIdx % 2 === 0) {
           hookData.cell.styles.fillColor = [255, 255, 255]
         } else {
@@ -393,7 +395,7 @@ const addWeekTable = (
     }
 
     const fillColor: [number, number, number] = entry.isWeekend
-      ? [242, 242, 242]
+      ? weekendFillColor
       : dayIdx % 2 === 0
         ? [255, 255, 255]
         : [235, 242, 250]
