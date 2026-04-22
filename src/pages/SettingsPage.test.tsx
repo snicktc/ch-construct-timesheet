@@ -260,7 +260,8 @@ describe('SettingsPage', () => {
 
     expect(screen.getByRole('button', { name: 'Update ophalen...' })).toBeDisabled()
 
-    resolveUpdate?.(true)
+    expect(resolveUpdate).not.toBeNull()
+    resolveUpdate!(true)
 
     expect(await screen.findByText('Update gevonden. De app wordt herladen.')).toBeVisible()
 
