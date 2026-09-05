@@ -196,6 +196,89 @@ describe('generateTimesheetPdf', () => {
     expect(mockGetDefaultLogoPathForRecipient).toHaveBeenCalledWith('VBW')
   })
 
+  it('omits a leave week and exports only the worked week', async () => {
+    const result = await generateTimesheetPdf({
+      employee: {
+        id: 1,
+        name: 'Milan Test',
+        exportRecipient: 'CH Construct',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      entries: [
+        // Entry in the leave week (should be dropped from the PDF).
+        {
+          id: 1,
+          employeeId: 1,
+          date: '2026-04-14',
+          sortOrder: 0,
+          clientId: 1,
+          clientName: 'CH Construct',
+          location: 'Gent',
+          startTime: '06:30',
+          endTime: '15:30',
+          breakMinutes: 45,
+          travelCreditMinutes: 0,
+          isDriver: 'Ja',
+          notes: '',
+        },
+        // Entry in the worked week (should remain).
+        {
+          id: 2,
+          employeeId: 1,
+          date: '2026-04-21',
+          sortOrder: 0,
+          clientId: 1,
+          clientName: 'CH Construct',
+          location: 'Gent',
+          startTime: '06:30',
+          endTime: '15:30',
+          breakMinutes: 45,
+          travelCreditMinutes: 0,
+          isDriver: 'Ja',
+          notes: '',
+        },
+      ],
+      leaveWeekStarts: ['2026-04-13'],
+    })
+
+    // Only one week table + one summary table.
+    expect(pdfMockState.autoTableMock).toHaveBeenCalledTimes(2)
+    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_17.pdf')
+    expect(result.weekStart).toBe('2026-04-20')
+    expect(result.weekEnd).toBe('2026-04-26')
+
+    const weekTableConfig = pdfMockState.autoTableMock.mock.calls[0]?.[1] as { head: string[][] }
+    expect(weekTableConfig.head[0][0]).toBe('Week\n17')
+
+    const summaryConfig = pdfMockState.autoTableMock.mock.calls[1]?.[1] as { foot: string[][] }
+    expect(summaryConfig.foot[0][0]).toBe('TOTAAL WEEK')
+  })
+
+  it('throws when both weeks of the fortnight are on leave', async () => {
+    await expect(
+      generateTimesheetPdf({
+        employee: {
+          id: 1,
+          name: 'Milan Test',
+          exportRecipient: 'CH Construct',
+          defaultBreakMinutes: 45,
+          defaultStartTime: '06:30',
+          sortOrder: 0,
+          isActive: true,
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        },
+        fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+        entries: [],
+        leaveWeekStarts: ['2026-04-13', '2026-04-20'],
+      }),
+    ).rejects.toThrow(/verlof/i)
+  })
+
   it('uses compact table settings that keep the summary together and subtotal readable', async () => {
     await generateTimesheetPdf({
       employee: {

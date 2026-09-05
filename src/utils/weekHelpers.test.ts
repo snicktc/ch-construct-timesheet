@@ -4,6 +4,7 @@ import {
   parseDateKey,
   addDays,
   getStartOfWeek,
+  getWeekStartKey,
   getWeekdayDates,
   getFortnightStart,
   getFortnightDates,
@@ -156,6 +157,19 @@ describe('weekHelpers utilities', () => {
         expect(day).toBeGreaterThanOrEqual(1) // Monday
         expect(day).toBeLessThanOrEqual(5) // Friday
       })
+    })
+  })
+
+  describe('getWeekStartKey', () => {
+    it('should return the Monday date-key for any day in the week', () => {
+      expect(getWeekStartKey(new Date(2026, 3, 15))).toBe('2026-04-13') // Wednesday -> Monday
+      expect(getWeekStartKey(new Date(2026, 3, 13))).toBe('2026-04-13') // Monday itself
+      expect(getWeekStartKey(new Date(2026, 3, 19))).toBe('2026-04-13') // Sunday -> previous Monday
+    })
+
+    it('should match formatDateKey(getStartOfWeek(...))', () => {
+      const date = new Date(2026, 2, 11)
+      expect(getWeekStartKey(date)).toBe(formatDateKey(getStartOfWeek(date)))
     })
   })
 

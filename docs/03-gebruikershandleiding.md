@@ -346,6 +346,27 @@ De app:
 - laat je meteen uren toevoegen voor die dag
 - houdt die gekozen datum actief zodat je niet onbedoeld terugvalt op vandaag
 
+## Verlofweken
+
+Ben je een week (of langer) met verlof? Dan kun je die week overslaan zodat hij niet meetelt en niet in je PDF komt.
+
+Zo doe je dat:
+
+1. ga naar `Week` en blader naar de periode van je verlof
+2. tik bij de betreffende week op `Markeer als verlof`
+3. de week krijgt een verlofaanduiding en telt niet meer mee in de totalen
+
+Wat er daarna gebeurt:
+
+- als je door de perioden bladert (vegen of de pijltjes), worden tweewekenblokken waarvan **beide** weken op verlof staan automatisch overgeslagen; je springt meteen naar de eerstvolgende werkweek
+- de PDF laat verlofweken volledig weg
+- staat maar één week van een tweewekenblok op verlof, dan bevat de PDF enkel de gewerkte week
+- staan beide weken op verlof, dan is er niets te exporteren
+
+Verlof weer ongedaan maken? Tik bij die week op `Verlof — herstel week`. Eventuele uren die je in die week had ingevuld, staan er dan gewoon weer.
+
+Let op: markeren als verlof verandert niets aan de datums of weeknummers. Die blijven de echte kalenderwaarden; enkel de verlofaanduiding wordt toegevoegd.
+
 ## PDF exporteren en delen
 
 In `Week` kun je:
@@ -353,7 +374,7 @@ In `Week` kun je:
 - een PDF downloaden
 - een PDF delen via het toestel
 
-Bij een volledig ingevulde tweewekenperiode verschijnt een extra exportbanner.
+Bij een volledig ingevulde tweewekenperiode verschijnt een extra exportbanner. Verlofweken worden bij het exporteren weggelaten.
 
 ## Notificaties gebruiken
 

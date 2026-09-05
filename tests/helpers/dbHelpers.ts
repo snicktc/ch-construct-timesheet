@@ -29,6 +29,7 @@ export const clearTestDb = async () => {
   await db.locations.clear()
   await db.timeEntries.clear()
   await db.weekExports.clear()
+  await db.leaveWeeks.clear()
 }
 
 /**
@@ -80,7 +81,7 @@ export const teardownTestDb = async () => {
 /**
  * Get count of records in a table
  */
-export const getTableCount = async (table: 'employees' | 'clients' | 'timeEntries' | 'locations' | 'weekExports') => {
+export const getTableCount = async (table: 'employees' | 'clients' | 'timeEntries' | 'locations' | 'weekExports' | 'leaveWeeks') => {
   return await db[table].count()
 }
 

@@ -48,6 +48,8 @@ export const getWeekdayDates = (value: Date) => {
   return Array.from({ length: 5 }, (_, index) => addDays(startOfWeek, index))
 }
 
+export const getWeekStartKey = (value: Date) => formatDateKey(getStartOfWeek(value))
+
 export const getFortnightStart = (value: Date) => getStartOfWeek(value)
 
 export const getFortnightDates = (value: Date) => {

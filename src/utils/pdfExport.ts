@@ -10,7 +10,9 @@ import {
   formatShortDate,
   getFortnightDates,
   getIsoWeekNumber,
+  getWeekStartKey,
   isWeekend,
+  parseDateKey,
 } from './weekHelpers'
 
 type ExportClientSummary = {
@@ -23,6 +25,8 @@ type GenerateTimesheetPdfInput = {
   employee: Employee
   fortnightStart: Date
   entries: TimeEntry[]
+  /** Monday date-keys (YYYY-MM-DD) of weeks marked as leave. */
+  leaveWeekStarts?: ReadonlySet<string> | string[]
 }
 
 const detectImageFormat = (dataUrl: string) => {
@@ -106,8 +110,7 @@ const buildClientSummary = (entries: TimeEntry[]) => {
 const addHeader = async (
   doc: jsPDF,
   employee: Employee,
-  weekOneNumber: number,
-  weekTwoNumber: number,
+  weekLabel: string,
   periodStart: Date,
   periodEnd: Date,
 ) => {
@@ -162,7 +165,7 @@ const addHeader = async (
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(11)
-  doc.text(`Week ${weekOneNumber}-${weekTwoNumber}`, textX, 31)
+  doc.text(weekLabel, textX, 31)
   doc.text(`${formatLongDate(periodStart)} – ${formatLongDate(periodEnd)}`, textX, 37)
 
   doc.setDrawColor(210, 214, 221)
@@ -427,22 +430,51 @@ export async function generateTimesheetPdf({
   employee,
   fortnightStart,
   entries,
+  leaveWeekStarts,
 }: GenerateTimesheetPdfInput) {
+  const leaveSet: ReadonlySet<string> = Array.isArray(leaveWeekStarts)
+    ? new Set(leaveWeekStarts)
+    : leaveWeekStarts ?? new Set<string>()
+
   const doc = new jsPDF({ format: 'a4', orientation: 'portrait', unit: 'mm' })
   const fortnightDates = getFortnightDates(fortnightStart)
-  const periodStart = fortnightDates[0]
-  const periodEnd = fortnightDates[13]
-  const weekOneNumber = getIsoWeekNumber(fortnightDates[0])
-  const weekTwoNumber = getIsoWeekNumber(fortnightDates[7])
-  const entriesByDate = groupEntriesByDate(entries)
-  const summary = buildClientSummary(entries)
-  const totalMinutes = entries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0)
-  const totalDays = new Set(entries.map((entry) => entry.date)).size
+  const weekOneDates = fortnightDates.slice(0, 7)
+  const weekTwoDates = fortnightDates.slice(7, 14)
+  const weekOneNumber = getIsoWeekNumber(weekOneDates[0])
+  const weekTwoNumber = getIsoWeekNumber(weekTwoDates[0])
 
-  await addHeader(doc, employee, weekOneNumber, weekTwoNumber, periodStart, periodEnd)
+  const isWeekOneLeave = leaveSet.has(getWeekStartKey(weekOneDates[0]))
+  const isWeekTwoLeave = leaveSet.has(getWeekStartKey(weekTwoDates[0]))
 
-  let currentY = addWeekTable(doc, `Week ${weekOneNumber}`, fortnightDates.slice(0, 7), entriesByDate, 46)
-  currentY = addWeekTable(doc, `Week ${weekTwoNumber}`, fortnightDates.slice(7, 14), entriesByDate, currentY + 7)
+  if (isWeekOneLeave && isWeekTwoLeave) {
+    throw new Error('Beide weken staan op verlof; er zijn geen uren om te exporteren.')
+  }
+
+  // Active weeks (not on leave), in chronological order.
+  const activeWeeks: Array<{ dates: Date[]; number: number }> = []
+  if (!isWeekOneLeave) activeWeeks.push({ dates: weekOneDates, number: weekOneNumber })
+  if (!isWeekTwoLeave) activeWeeks.push({ dates: weekTwoDates, number: weekTwoNumber })
+
+  const periodStart = activeWeeks[0].dates[0]
+  const periodEnd = activeWeeks[activeWeeks.length - 1].dates[6]
+
+  // Filter out entries that fall inside a leave week.
+  const reportableEntries = entries.filter((entry) => !leaveSet.has(getWeekStartKey(parseDateKey(entry.date))))
+
+  const entriesByDate = groupEntriesByDate(reportableEntries)
+  const summary = buildClientSummary(reportableEntries)
+  const totalMinutes = reportableEntries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0)
+  const totalDays = new Set(reportableEntries.map((entry) => entry.date)).size
+
+  const weekLabel = activeWeeks.length === 1 ? `Week ${activeWeeks[0].number}` : `Week ${weekOneNumber}-${weekTwoNumber}`
+
+  await addHeader(doc, employee, weekLabel, periodStart, periodEnd)
+
+  let currentY = 46
+  activeWeeks.forEach((week, index) => {
+    const startY = index === 0 ? 46 : currentY + 7
+    currentY = addWeekTable(doc, `Week ${week.number}`, week.dates, entriesByDate, startY)
+  })
 
   autoTable(doc, {
     startY: currentY + 7,
@@ -452,7 +484,9 @@ export async function generateTimesheetPdf({
       String(client.uniqueDates.size),
       formatMinutesAsHours(client.totalMinutes),
     ]),
-    foot: [['TOTAAL 2 WEKEN', String(totalDays), formatMinutesAsHours(totalMinutes)]],
+    foot: [
+      [activeWeeks.length === 1 ? 'TOTAAL WEEK' : 'TOTAAL 2 WEKEN', String(totalDays), formatMinutesAsHours(totalMinutes)],
+    ],
     theme: 'grid',
     pageBreak: 'avoid',
     styles: {
@@ -493,7 +527,8 @@ export async function generateTimesheetPdf({
     doc.text(`pagina ${page}/${pageCount}`, 196, 294, { align: 'right' })
   }
 
-  const fileName = `Werkuren_${sanitizeFilePart(employee.name)}_Week_${weekOneNumber}-${weekTwoNumber}.pdf`
+  const weekNumbersLabel = activeWeeks.length === 1 ? `${activeWeeks[0].number}` : `${weekOneNumber}-${weekTwoNumber}`
+  const fileName = `Werkuren_${sanitizeFilePart(employee.name)}_Week_${weekNumbersLabel}.pdf`
   const pdfBlob = doc.output('blob')
   const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
 

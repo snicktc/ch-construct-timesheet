@@ -82,6 +82,33 @@
   box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12), 0 10px 30px rgba(30, 58, 95, 0.08);
 }
 
+.week-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.week-panel-header h2 {
+  margin: 0;
+}
+
+.leave-toggle {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.panel.is-leave-week {
+  background: #f4f6fb;
+  box-shadow: inset 0 0 0 1px rgba(30, 58, 95, 0.16), 0 10px 30px rgba(30, 58, 95, 0.06);
+}
+
+.leave-week-note {
+  margin-top: 8px;
+}
+
 .today-page {
   display: grid;
   gap: 16px;

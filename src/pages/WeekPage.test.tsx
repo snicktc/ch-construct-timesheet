@@ -122,6 +122,95 @@ describe('WeekPage', () => {
     expect(screen.getByText(/Alle 10 werkdagen zijn ingevuld/i)).toBeVisible()
   })
 
+  it('marks a week as leave and shows the leave note', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    const [markButton] = await screen.findAllByRole('button', { name: 'Markeer als verlof' })
+    await user.click(markButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Verlofweek · wordt overgeslagen/i)).toBeVisible()
+    })
+
+    // A leave record is persisted for the first week (Monday 2026-04-13).
+    const stored = await db.leaveWeeks.where('employeeId').equals(activeEmployeeId).toArray()
+    expect(stored.map((row) => row.weekStart)).toContain('2026-04-13')
+  })
+
+  it('excludes leave-week entries from the fortnight totals', async () => {
+    await db.timeEntries.add(
+      createTimeEntryRecord({
+        employeeId: activeEmployeeId,
+        date: '2026-04-14', // week one
+        sortOrder: 0,
+        clientId: 1,
+        clientName: 'CH Construct',
+        location: 'Gent',
+        startTime: '06:30',
+        endTime: '15:30',
+      }),
+    )
+    // Mark week one as leave up front.
+    await db.leaveWeeks.add({ employeeId: activeEmployeeId, weekStart: '2026-04-13', createdAt: new Date() })
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    // Leave note is visible and the client entry is not counted in the summary.
+    await waitFor(() => {
+      expect(screen.getByText(/Verlofweek · wordt overgeslagen/i)).toBeVisible()
+    })
+    expect(screen.getByText(/Nog geen registraties in deze 2 weken\./i)).toBeVisible()
+  })
+
+  it('skips a fully-leave fortnight when navigating forward', async () => {
+    // Mark the entire NEXT fortnight (2026-04-27 .. 2026-05-10) as leave.
+    await db.leaveWeeks.bulkAdd([
+      { employeeId: activeEmployeeId, weekStart: '2026-04-27', createdAt: new Date() },
+      { employeeId: activeEmployeeId, weekStart: '2026-05-04', createdAt: new Date() },
+    ])
+
+    const user = userEvent.setup()
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    // Current period header: week 16-17.
+    expect(await screen.findByRole('heading', { level: 1, name: /Week 16-17/i })).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Volgende 2 weken' }))
+
+    // The next block (week 18-19) is fully on leave, so it is skipped and
+    // we land on week 20-21 (2026-05-11 .. 2026-05-24).
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: /Week 20-21/i })).toBeVisible()
+    })
+  })
+
   it('shows a share error when Web Share is unsupported', async () => {
     vi.spyOn(navigator, 'canShare').mockReturnValue(false)
 

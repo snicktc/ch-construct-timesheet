@@ -1,5 +1,20 @@
 # Changelog
 
+## Niet uitgebracht
+
+### Toegevoegd
+
+- verlofweken: markeer een kalenderweek (ma-zo) als verlof via een knop in het 2-wekenoverzicht
+- verlofweken worden overgeslagen bij het navigeren (swipe en pijltjes springen naar de eerstvolgende werkweek)
+- verlofweken tellen niet mee in subtotalen, samenvatting en de “werkweek compleet”-melding
+- PDF-export laat verlofweken volledig weg; bij een half-verlof 2-wekenblok toont de PDF enkel de gewerkte week (titel, periode en bestandsnaam passen mee aan)
+
+### Technisch
+
+- nieuwe Dexie-tabel `leaveWeeks` (database versie 3) met samengestelde index `[employeeId+weekStart]`
+- nieuwe hook `useLeaveWeeks` en helper `getWeekStartKey`
+- uitgebreide unit-tests voor database, hook, weekhelpers, PDF-export en het weekoverzicht
+
 ## 1.0.0
 
 Eerste volledige oplevering van `timesheet`.

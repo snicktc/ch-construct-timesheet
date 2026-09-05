@@ -132,6 +132,10 @@ Een urenregistratie is één registratie op één dag voor één profiel. Een da
 
 Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk op de 10 werkdagen.
 
+### Verlofweek
+
+Een verlofweek is een volledige kalenderweek (maandag tot en met zondag) die de gebruiker als verlof markeert. Een verlofweek wordt overgeslagen bij het navigeren en telt niet mee in totalen of export. Weeknummers en datums blijven de werkelijke kalenderwaarden; de verlofmarkering is een aparte aanduiding en verschuift niets aan de kalender.
+
 ## Businessregels
 
 ### Profielen
@@ -159,9 +163,20 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 - rit-credit mag elke niet-negatieve minuutwaarde bevatten
 - rit-credit toont standaard `0`, maar laat die vooringevulde waarde verdwijnen zodra de gebruiker begint te typen
 
+### Verlofweken
+
+- een verlofmarkering geldt voor één volledige kalenderweek (maandag tot en met zondag) en per profiel
+- markeren en herstellen gebeurt met één knop per week in het tweewekenoverzicht
+- bij het navigeren met swipe of pijltjes wordt een tweewekenblok waarvan beide weken op verlof staan, overgeslagen naar de eerstvolgende werkweek (met een veiligheidsgrens van ongeveer één jaar)
+- een verlofweek telt niet mee in de subtotalen, de samenvatting per klant en de controle of de werkweek volledig is
+- eventuele bestaande registraties in een verlofweek blijven bewaard, maar worden niet meegeteld zolang de week op verlof staat
+
 ### Export
 
-- een export betreft een volledige tweewekenperiode
+- een export betreft in principe een volledige tweewekenperiode
+- verlofweken worden volledig weggelaten uit de PDF
+- staat één van beide weken op verlof, dan bevat de PDF enkel de gewerkte week; titel, periode en bestandsnaam passen mee aan
+- staan beide weken op verlof, dan is er niets te exporteren en toont de app een melding
 - export gebeurt in PDF-formaat
 - export kan lokaal gedownload of gedeeld worden
 
@@ -206,6 +221,15 @@ Het weekscherm groepeert prestaties per periode van 14 kalenderdagen, met nadruk
 3. app opent `Vandaag` op exact die gekozen dag
 4. app markeert zichtbaar dat de dag uit het weekoverzicht komt
 5. gebruiker kan meteen uren toevoegen of bestaande uren bekijken
+
+### Verlofweek markeren
+
+1. gebruiker opent `Week` en navigeert naar de betreffende periode
+2. gebruiker tikt bij de gewenste week op `Markeer als verlof`
+3. de week toont voortaan een verlofaanduiding en telt niet meer mee in totalen
+4. bij navigeren worden tweewekenblokken die volledig op verlof staan, overgeslagen
+5. de PDF-export laat die week weg
+6. gebruiker kan de markering ongedaan maken via `Verlof — herstel week`
 
 ### Profiel wisselen
 
@@ -275,6 +299,7 @@ Het scherm geeft een overzicht van 2 weken en ondersteunt export.
 ### Belangrijkste elementen
 
 - periodeheader met weeknummers
+- knop `Markeer als verlof` / `Verlof — herstel week` per week
 - dagkaarten per periode
 - subtotaal per week
 - samenvatting per klant
@@ -291,6 +316,7 @@ Het scherm geeft een overzicht van 2 weken en ondersteunt export.
 ### Belangrijkste acties
 
 - periode wisselen
+- week als verlof markeren of herstellen
 - dag openen vanuit het overzicht
 - PDF downloaden
 - PDF delen
@@ -300,6 +326,8 @@ Het scherm geeft een overzicht van 2 weken en ondersteunt export.
 - tikken op een dag opent `Vandaag`
 - lege dagen tonen een oproep om te registreren
 - complete perioden tonen directe exportactie
+- een als verlof gemarkeerde week toont een verlofaanduiding en telt niet mee
+- navigatie slaat tweewekenblokken over waarvan beide weken op verlof staan
 
 ## Klanten
 

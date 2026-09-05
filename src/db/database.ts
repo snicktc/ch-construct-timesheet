@@ -58,6 +58,13 @@ export interface WeekExport {
   format: 'pdf'
 }
 
+export interface LeaveWeek {
+  id?: number
+  employeeId: number
+  weekStart: string
+  createdAt: Date
+}
+
 export type NewEmployeeInput = Pick<Employee, 'name' | 'exportRecipient'> &
   Partial<Omit<Employee, 'id' | 'name' | 'exportRecipient'>>
 
@@ -71,6 +78,9 @@ export type NewTimeEntryInput = Omit<TimeEntry, 'id' | 'clientName' | 'breakMinu
 
 export type NewWeekExportInput = Omit<WeekExport, 'id' | 'exportedAt' | 'format'> &
   Partial<Pick<WeekExport, 'exportedAt' | 'format'>>
+
+export type NewLeaveWeekInput = Omit<LeaveWeek, 'id' | 'createdAt'> &
+  Partial<Pick<LeaveWeek, 'createdAt'>>
 
 const normalizeEmployeeChanges = (changes: Partial<Employee>): Partial<Employee> => ({
   ...(changes.name !== undefined ? { name: normalizeString(changes.name) } : {}),
@@ -120,6 +130,10 @@ const normalizeTimeEntryChanges = (changes: Partial<TimeEntry>): Partial<TimeEnt
 
 const normalizeWeekExportChanges = (changes: Partial<WeekExport>): Partial<WeekExport> => ({
   ...(changes.format !== undefined ? { format: changes.format ?? 'pdf' } : {}),
+})
+
+const normalizeLeaveWeekChanges = (changes: Partial<LeaveWeek>): Partial<LeaveWeek> => ({
+  ...(changes.weekStart !== undefined ? { weekStart: normalizeString(changes.weekStart) } : {}),
 })
 
 const clampNonNegativeInteger = (value: number, fallback: number) => {
@@ -203,12 +217,19 @@ export const createWeekExportRecord = (input: NewWeekExportInput): Omit<WeekExpo
   format: input.format ?? 'pdf',
 })
 
+export const createLeaveWeekRecord = (input: NewLeaveWeekInput): Omit<LeaveWeek, 'id'> => ({
+  employeeId: input.employeeId,
+  weekStart: normalizeString(input.weekStart),
+  createdAt: input.createdAt ?? new Date(),
+})
+
 export class TimesheetDatabase extends Dexie {
   employees!: EntityTable<Employee, 'id'>
   clients!: EntityTable<Client, 'id'>
   locations!: EntityTable<Location, 'id'>
   timeEntries!: EntityTable<TimeEntry, 'id'>
   weekExports!: EntityTable<WeekExport, 'id'>
+  leaveWeeks!: EntityTable<LeaveWeek, 'id'>
 
   constructor() {
     super('timesheet')
@@ -236,6 +257,15 @@ export class TimesheetDatabase extends Dexie {
           delete (employee as { exportLogo?: string }).exportLogo
         })
       })
+
+    this.version(3).stores({
+      employees: '++id, name, exportRecipient, sortOrder, isActive, [isActive+sortOrder], createdAt',
+      clients: '++id, name, lastUsedAt',
+      locations: '++id, name',
+      timeEntries: '++id, employeeId, date, [employeeId+date], sortOrder, clientId, clientName',
+      weekExports: '++id, employeeId, weekStart, weekEnd, exportedAt, format, [employeeId+weekStart+weekEnd]',
+      leaveWeeks: '++id, employeeId, weekStart, [employeeId+weekStart]',
+    })
 
     this.employees.hook('creating', (_, employee) => {
       employee.name = normalizeString(employee.name)
@@ -283,6 +313,13 @@ export class TimesheetDatabase extends Dexie {
     })
 
     this.weekExports.hook('updating', (changes) => normalizeWeekExportChanges(changes as Partial<WeekExport>))
+
+    this.leaveWeeks.hook('creating', (_, leaveWeek) => {
+      leaveWeek.weekStart = normalizeString(leaveWeek.weekStart)
+      leaveWeek.createdAt = leaveWeek.createdAt ?? new Date()
+    })
+
+    this.leaveWeeks.hook('updating', (changes) => normalizeLeaveWeekChanges(changes as Partial<LeaveWeek>))
   }
 }
 

@@ -7,6 +7,7 @@ import {
   createLocationRecord,
   createTimeEntryRecord,
   createWeekExportRecord,
+  createLeaveWeekRecord,
   DEFAULT_BREAK_MINUTES,
   DEFAULT_TRAVEL_CREDIT_MINUTES,
   DEFAULT_START_TIME,
@@ -396,6 +397,27 @@ describe('Database Record Creation Functions', () => {
       expect(record.format).toBe('pdf')
     })
   })
+
+  describe('createLeaveWeekRecord', () => {
+    it('should create leave week with required fields', () => {
+      const record = createLeaveWeekRecord({ employeeId: 1, weekStart: '2026-03-09' })
+
+      expect(record.employeeId).toBe(1)
+      expect(record.weekStart).toBe('2026-03-09')
+      expect(record.createdAt).toBeInstanceOf(Date)
+    })
+
+    it('should trim the weekStart key', () => {
+      const record = createLeaveWeekRecord({ employeeId: 1, weekStart: '  2026-03-09  ' })
+      expect(record.weekStart).toBe('2026-03-09')
+    })
+
+    it('should use provided createdAt', () => {
+      const date = new Date('2026-03-01T08:00:00')
+      const record = createLeaveWeekRecord({ employeeId: 1, weekStart: '2026-03-09', createdAt: date })
+      expect(record.createdAt).toEqual(date)
+    })
+  })
 })
 
 describe('Database Hooks Integration', () => {
@@ -635,6 +657,36 @@ describe('Database Hooks Integration', () => {
       expect(weekExport?.format).toBe('pdf')
       expect(weekExport?.exportedAt).toBeInstanceOf(Date)
       expect(weekExport?.exportedAt.getTime()).toBeGreaterThanOrEqual(beforeCreate.getTime())
+    })
+  })
+
+  describe('LeaveWeek Hooks', () => {
+    it('should set defaults and trim weekStart on create', async () => {
+      const beforeCreate = new Date()
+
+      const id = await db.leaveWeeks.add({
+        employeeId: 1,
+        weekStart: '  2026-03-09  ',
+        createdAt: new Date(),
+      })
+
+      const leaveWeek = await db.leaveWeeks.get(id)
+      expect(leaveWeek?.weekStart).toBe('2026-03-09')
+      expect(leaveWeek?.createdAt).toBeInstanceOf(Date)
+      expect(leaveWeek?.createdAt.getTime()).toBeGreaterThanOrEqual(beforeCreate.getTime())
+    })
+
+    it('should query leave weeks by employee and weekStart compound index', async () => {
+      await db.leaveWeeks.add(createLeaveWeekRecord({ employeeId: 1, weekStart: '2026-03-09' }))
+      await db.leaveWeeks.add(createLeaveWeekRecord({ employeeId: 2, weekStart: '2026-03-09' }))
+
+      const match = await db.leaveWeeks
+        .where('[employeeId+weekStart]')
+        .equals([1, '2026-03-09'])
+        .toArray()
+
+      expect(match).toHaveLength(1)
+      expect(match[0].employeeId).toBe(1)
     })
   })
 })

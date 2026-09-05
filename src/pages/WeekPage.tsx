@@ -5,6 +5,7 @@ import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { Toast } from '../components/Toast'
 import { createWeekExportRecord, db, type Employee, type TimeEntry } from '../db/database'
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
+import { useLeaveWeeks } from '../hooks/useLeaveWeeks'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from '../utils/timeCalc'
 import {
   addDays,
@@ -13,6 +14,7 @@ import {
   formatShortDate,
   getFortnightDates,
   getIsoWeekNumber,
+  getWeekStartKey,
   isWeekend,
   parseDateKey,
 } from '../utils/weekHelpers'
@@ -50,13 +52,42 @@ export function WeekPage({
   const [latestExportFile, setLatestExportFile] = useState<File | null>(null)
   const [preparedSharePeriodKey, setPreparedSharePeriodKey] = useState('')
 
+  const { leaveWeekStarts, isLeaveWeek, toggleLeaveWeek } = useLeaveWeeks(activeEmployeeId)
+
+  // Advance the anchor in 2-week steps, skipping fortnight blocks whose
+  // two calendar weeks are both marked as leave. A safety cap prevents an
+  // infinite loop when many consecutive weeks are on leave.
+  const advancePeriod = useCallback(
+    (direction: 1 | -1) => {
+      setAnchorDate((current) => {
+        const maxHops = 27 // ~1 year of fortnights
+        let candidate = addDays(current, direction * 14)
+
+        for (let hop = 0; hop < maxHops; hop += 1) {
+          const weekOneStart = getWeekStartKey(candidate)
+          const weekTwoStart = getWeekStartKey(addDays(candidate, 7))
+          const bothOnLeave = leaveWeekStarts.has(weekOneStart) && leaveWeekStarts.has(weekTwoStart)
+
+          if (!bothOnLeave) {
+            return candidate
+          }
+
+          candidate = addDays(candidate, direction * 14)
+        }
+
+        return candidate
+      })
+    },
+    [leaveWeekStarts],
+  )
+
   const handleSwipeLeft = useCallback(() => {
-    setAnchorDate((current) => addDays(current, 14))
-  }, [])
+    advancePeriod(1)
+  }, [advancePeriod])
 
   const handleSwipeRight = useCallback(() => {
-    setAnchorDate((current) => addDays(current, -14))
-  }, [])
+    advancePeriod(-1)
+  }, [advancePeriod])
 
   const swipeBindings = useHorizontalSwipe({
     onSwipeLeft: handleSwipeLeft,
@@ -102,10 +133,34 @@ export function WeekPage({
     return grouped
   }, [entries])
 
+  const weekOneDates = fortnightDates.slice(0, 7)
+  const weekTwoDates = fortnightDates.slice(7, 14)
+  const weekOneNumber = getIsoWeekNumber(weekOneDates[0])
+  const weekTwoNumber = getIsoWeekNumber(weekTwoDates[0])
+
+  const isWeekOneLeave = isLeaveWeek(weekOneDates[0])
+  const isWeekTwoLeave = isLeaveWeek(weekTwoDates[0])
+  const weekOneStartKey = getWeekStartKey(weekOneDates[0])
+  const weekTwoStartKey = getWeekStartKey(weekTwoDates[0])
+
+  // Entries that count towards summaries, totals and export exclude any
+  // week that is marked as leave.
+  const reportableEntries = useMemo(() => {
+    const leaveWeekStartsForFortnight = new Set<string>()
+    if (leaveWeekStarts.has(weekOneStartKey)) leaveWeekStartsForFortnight.add(weekOneStartKey)
+    if (leaveWeekStarts.has(weekTwoStartKey)) leaveWeekStartsForFortnight.add(weekTwoStartKey)
+
+    if (leaveWeekStartsForFortnight.size === 0) {
+      return entries
+    }
+
+    return entries.filter((entry) => !leaveWeekStartsForFortnight.has(getWeekStartKey(parseDateKey(entry.date))))
+  }, [entries, leaveWeekStarts, weekOneStartKey, weekTwoStartKey])
+
   const clientSummary = useMemo(() => {
     const summary = new Map<string, ClientSummary>()
 
-    for (const entry of entries) {
+    for (const entry of reportableEntries) {
       const current =
         summary.get(entry.clientName) ??
         ({ clientName: entry.clientName, totalMinutes: 0, uniqueDates: new Set<string>() } satisfies ClientSummary)
@@ -116,25 +171,32 @@ export function WeekPage({
     }
 
     return [...summary.values()].sort((left, right) => right.totalMinutes - left.totalMinutes)
-  }, [entries])
+  }, [reportableEntries])
 
-  const totalUniqueDays = useMemo(() => new Set(entries.map((entry) => entry.date)).size, [entries])
-  const totalMinutes = useMemo(() => entries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0), [entries])
+  const totalUniqueDays = useMemo(() => new Set(reportableEntries.map((entry) => entry.date)).size, [reportableEntries])
+  const totalMinutes = useMemo(
+    () => reportableEntries.reduce((total, entry) => total + calculateEntryMinutes(entry), 0),
+    [reportableEntries],
+  )
 
-  const weekOneDates = fortnightDates.slice(0, 7)
-  const weekTwoDates = fortnightDates.slice(7, 14)
-  const weekOneNumber = getIsoWeekNumber(weekOneDates[0])
-  const weekTwoNumber = getIsoWeekNumber(weekTwoDates[0])
+  // Weekday completeness ignores leave weeks entirely.
   const weekdayDateKeys = fortnightDates
     .filter((date) => date.getDay() >= 1 && date.getDay() <= 5)
+    .filter((date) => !isLeaveWeek(date))
     .map(formatDateKey)
+  const requiredWeekdayCount = weekdayDateKeys.length
   const completedWeekdayCount = useMemo(
     () => weekdayDateKeys.filter((dateKey) => entriesByDate.has(dateKey)).length,
     [entriesByDate, weekdayDateKeys],
   )
-  const secondFridayKey = formatDateKey(weekTwoDates[4])
-  const hasSecondFridayEntry = entriesByDate.has(secondFridayKey)
-  const isFortnightComplete = completedWeekdayCount === 10 && hasSecondFridayEntry
+  const lastWorkFridayKey = isWeekTwoLeave
+    ? isWeekOneLeave
+      ? null
+      : formatDateKey(weekOneDates[4])
+    : formatDateKey(weekTwoDates[4])
+  const hasLastWorkFridayEntry = lastWorkFridayKey ? entriesByDate.has(lastWorkFridayKey) : false
+  const isFortnightComplete =
+    requiredWeekdayCount > 0 && completedWeekdayCount === requiredWeekdayCount && hasLastWorkFridayEntry
   const periodKey = `${fortnightStartKey}_${fortnightEndKey}`
 
   useEffect(() => {
@@ -156,6 +218,7 @@ export function WeekPage({
           employee: activeEmployee,
           fortnightStart: fortnightDates[0],
           entries,
+          leaveWeekStarts,
         })
 
         if (!cancelled) {
@@ -178,6 +241,7 @@ export function WeekPage({
     fortnightDates,
     isFortnightComplete,
     latestExportFile,
+    leaveWeekStarts,
     periodKey,
     preparedSharePeriodKey,
   ])
@@ -205,65 +269,85 @@ export function WeekPage({
   )
 
   const renderWeekRows = useCallback(
-    (dates: Date[]) => {
+    (dates: Date[], isLeave: boolean) => {
       const weekMinutes = dates.reduce((total, date) => {
         const dateEntries = entriesByDate.get(formatDateKey(date)) ?? []
         return total + calculateDayTotalMinutes(dateEntries)
       }, 0)
+      const weekNumber = getIsoWeekNumber(dates[0])
 
       const result = (
-        <section className="panel">
-          <h2>Week {getIsoWeekNumber(dates[0])}</h2>
-          <div className="week-day-list">
-            {dates.map((date) => {
-              const dateKey = formatDateKey(date)
-              const dateEntries = entriesByDate.get(dateKey) ?? []
-              const dayTotal = calculateDayTotalMinutes(dateEntries)
+        <section className={`panel${isLeave ? ' is-leave-week' : ''}`}>
+          <div className="week-panel-header">
+            <h2>Week {weekNumber}</h2>
+            <button
+              type="button"
+              className={isLeave ? 'primary-button leave-toggle' : 'secondary-button leave-toggle'}
+              aria-pressed={isLeave}
+              onClick={() => void toggleLeaveWeek(dates[0])}
+            >
+              {isLeave ? 'Verlof — herstel week' : 'Markeer als verlof'}
+            </button>
+          </div>
 
-              return (
-                <button
-                  key={dateKey}
-                  type="button"
-                  className={`week-day-card${dateEntries.length === 0 ? ' is-empty' : ''}${isWeekend(date) ? ' is-weekend' : ''}`}
-                  onClick={() => handleOpenDay(dateKey)}
-                >
-                <div className="week-day-top">
-                  <strong>{formatShortDate(date)}</strong>
-                  <strong>{dateEntries.length > 0 ? formatMinutesAsHours(dayTotal) : '—'}</strong>
-                </div>
+          {isLeave ? (
+            <p className="muted-text leave-week-note">
+              Verlofweek · wordt overgeslagen bij navigeren en niet meegenomen in de PDF.
+            </p>
+          ) : (
+            <>
+              <div className="week-day-list">
+                {dates.map((date) => {
+                  const dateKey = formatDateKey(date)
+                  const dateEntries = entriesByDate.get(dateKey) ?? []
+                  const dayTotal = calculateDayTotalMinutes(dateEntries)
 
-                {dateEntries.length === 0 ? (
-                  <p className="muted-text">{isWeekend(date) ? 'Weekend' : 'Nog niet geregistreerd · tik om toe te voegen'}</p>
-                ) : (
-                  <div className="week-day-entries">
-                    {dateEntries.map((entry, index) => (
-                      <div key={entry.id ?? `${dateKey}-${index}`} className="week-entry-row">
-                        <span>
-                          {entry.clientName} - {entry.location}
-                        </span>
-                        <span>
-                          {entry.startTime}-{entry.endTime}
-                        </span>
-                        {entry.notes ? <em className="week-entry-notes">{entry.notes}</em> : null}
+                  return (
+                    <button
+                      key={dateKey}
+                      type="button"
+                      className={`week-day-card${dateEntries.length === 0 ? ' is-empty' : ''}${isWeekend(date) ? ' is-weekend' : ''}`}
+                      onClick={() => handleOpenDay(dateKey)}
+                    >
+                    <div className="week-day-top">
+                      <strong>{formatShortDate(date)}</strong>
+                      <strong>{dateEntries.length > 0 ? formatMinutesAsHours(dayTotal) : '—'}</strong>
+                    </div>
+
+                    {dateEntries.length === 0 ? (
+                      <p className="muted-text">{isWeekend(date) ? 'Weekend' : 'Nog niet geregistreerd · tik om toe te voegen'}</p>
+                    ) : (
+                      <div className="week-day-entries">
+                        {dateEntries.map((entry, index) => (
+                          <div key={entry.id ?? `${dateKey}-${index}`} className="week-entry-row">
+                            <span>
+                              {entry.clientName} - {entry.location}
+                            </span>
+                            <span>
+                              {entry.startTime}-{entry.endTime}
+                            </span>
+                            {entry.notes ? <em className="week-entry-notes">{entry.notes}</em> : null}
+                          </div>
+                        ))}
+                        <p className="muted-text">Tik om te bekijken of uren toe te voegen</p>
                       </div>
-                    ))}
-                    <p className="muted-text">Tik om te bekijken of uren toe te voegen</p>
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
 
-        <div className="week-subtotal-row">
-          <span>Week {getIsoWeekNumber(dates[0])} subtotaal</span>
-          <strong>{formatMinutesAsHours(weekMinutes)}</strong>
-        </div>
+            <div className="week-subtotal-row">
+              <span>Week {weekNumber} subtotaal</span>
+              <strong>{formatMinutesAsHours(weekMinutes)}</strong>
+            </div>
+            </>
+          )}
         </section>
       )
       return result
     },
-    [entriesByDate, handleOpenDay],
+    [entriesByDate, handleOpenDay, toggleLeaveWeek],
   )
 
   const handleExportPdf = async () => {
@@ -277,6 +361,7 @@ export function WeekPage({
         employee: activeEmployee,
         fortnightStart: fortnightDates[0],
         entries,
+        leaveWeekStarts,
       })
 
       const downloadUrl = URL.createObjectURL(result.pdfBlob)
@@ -316,6 +401,7 @@ export function WeekPage({
               employee: activeEmployee,
               fortnightStart: fortnightDates[0],
               entries,
+              leaveWeekStarts,
             })
           ).pdfFile
 
@@ -357,18 +443,18 @@ export function WeekPage({
           </div>
 
           <div className="date-nav" aria-label="Periode navigatie">
-            <button type="button" className="secondary-button" aria-label="Vorige 2 weken" onClick={() => setAnchorDate((current) => addDays(current, -14))}>
+            <button type="button" className="secondary-button" aria-label="Vorige 2 weken" onClick={() => advancePeriod(-1)}>
               ◀
             </button>
-            <button type="button" className="secondary-button" aria-label="Volgende 2 weken" onClick={() => setAnchorDate((current) => addDays(current, 14))}>
+            <button type="button" className="secondary-button" aria-label="Volgende 2 weken" onClick={() => advancePeriod(1)}>
               ▶
             </button>
           </div>
         </div>
       </header>
 
-      {renderWeekRows(weekOneDates)}
-      {renderWeekRows(weekTwoDates)}
+      {renderWeekRows(weekOneDates, isWeekOneLeave)}
+      {renderWeekRows(weekTwoDates, isWeekTwoLeave)}
 
       {exportSuccess ? <Toast message={exportSuccess} tone="success" /> : null}
       {exportError ? <Toast message={exportError} tone="error" /> : null}
@@ -377,7 +463,12 @@ export function WeekPage({
         <section className={`panel export-banner${highlightExportPrompt ? ' is-highlighted' : ''}`}>
           <strong>Werkweek compleet! Verstuur naar {activeEmployee.exportRecipient}?</strong>
           <p className="muted-text">
-            Alle 10 werkdagen zijn ingevuld. Je overzicht voor week {weekOneNumber}-{weekTwoNumber}{' '}
+            Alle {requiredWeekdayCount} werkdagen zijn ingevuld. Je overzicht voor week{' '}
+            {isWeekOneLeave || isWeekTwoLeave
+              ? isWeekOneLeave
+                ? weekTwoNumber
+                : weekOneNumber
+              : `${weekOneNumber}-${weekTwoNumber}`}{' '}
             staat klaar.
           </p>
           <div className="button-row">
@@ -395,7 +486,11 @@ export function WeekPage({
         <h2>Samenvatting</h2>
         <div className="summary-list">
           {clientSummary.length === 0 ? (
-            <p className="muted-text">Nog geen registraties in deze 2 weken.</p>
+            <p className="muted-text">
+              {isWeekOneLeave && isWeekTwoLeave
+                ? 'Beide weken staan op verlof.'
+                : 'Nog geen registraties in deze 2 weken.'}
+            </p>
           ) : (
             clientSummary.map((client) => (
               <div key={client.clientName} className="summary-row">
