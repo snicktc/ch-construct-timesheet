@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createEmployeeRecord, createTimeEntryRecord, db, type Employee } from '../db/database'
 import { setupTestDb, teardownTestDb } from '../../tests/helpers/dbHelpers'
+import { generateTimesheetPdf } from '../utils/pdfExport'
 import { formatDateKey } from '../utils/weekHelpers'
 import { WeekPage } from './WeekPage'
 
@@ -12,14 +13,31 @@ vi.mock('../hooks/useHorizontalSwipe', () => ({
 }))
 
 vi.mock('../utils/pdfExport', () => ({
-  generateTimesheetPdf: vi.fn().mockResolvedValue({
-    pdfBlob: new Blob(['pdf'], { type: 'application/pdf' }),
-    pdfFile: new File(['pdf'], 'timesheet.pdf', { type: 'application/pdf' }),
-    fileName: 'timesheet.pdf',
-    weekStart: '2026-04-13',
-    weekEnd: '2026-04-26',
-  }),
+  generateTimesheetPdf: vi.fn(),
 }))
+
+const mockedGeneratePdf = vi.mocked(generateTimesheetPdf)
+
+const createPdfResult = (label = 'pdf') => ({
+  pdfBlob: new Blob([label], { type: 'application/pdf' }),
+  pdfFile: new File([label], `${label}.pdf`, { type: 'application/pdf' }),
+  fileName: `${label}.pdf`,
+  weekStart: '2026-04-13',
+  weekEnd: '2026-04-26',
+})
+
+const COMPLETE_FORTNIGHT_DATES = [
+  '2026-04-13',
+  '2026-04-14',
+  '2026-04-15',
+  '2026-04-16',
+  '2026-04-17',
+  '2026-04-20',
+  '2026-04-21',
+  '2026-04-22',
+  '2026-04-23',
+  '2026-04-24',
+]
 
 describe('WeekPage', () => {
   let activeEmployee: Employee
@@ -27,6 +45,8 @@ describe('WeekPage', () => {
 
   beforeEach(async () => {
     await setupTestDb()
+    mockedGeneratePdf.mockReset()
+    mockedGeneratePdf.mockImplementation(async () => createPdfResult() as never)
     vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'))
     activeEmployeeId = await db.employees.add(
       createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
@@ -79,21 +99,8 @@ describe('WeekPage', () => {
   })
 
   it('shows the export banner when the fortnight is complete', async () => {
-    const dates = [
-      '2026-04-13',
-      '2026-04-14',
-      '2026-04-15',
-      '2026-04-16',
-      '2026-04-17',
-      '2026-04-20',
-      '2026-04-21',
-      '2026-04-22',
-      '2026-04-23',
-      '2026-04-24',
-    ]
-
     await db.timeEntries.bulkAdd(
-      dates.map((date, index) =>
+      COMPLETE_FORTNIGHT_DATES.map((date, index) =>
         createTimeEntryRecord({
           employeeId: activeEmployeeId,
           date,
@@ -120,6 +127,66 @@ describe('WeekPage', () => {
 
     expect(await screen.findByText(/Werkweek compleet!/i)).toBeVisible()
     expect(screen.getByText(/Alle 10 werkdagen zijn ingevuld/i)).toBeVisible()
+  })
+
+  it('regenerates the shared PDF after an entry changes in a complete fortnight', async () => {
+    const entryIds = (await Promise.all(
+      COMPLETE_FORTNIGHT_DATES.map((date, index) =>
+        db.timeEntries.add(
+          createTimeEntryRecord({
+            employeeId: activeEmployeeId,
+            date,
+            sortOrder: index,
+            clientId: 1,
+            clientName: 'CH Construct',
+            location: 'Gent',
+            startTime: '06:30',
+            endTime: '15:30',
+          }),
+        ),
+      ),
+    )) as number[]
+
+    const shareSpy = vi.spyOn(navigator, 'share').mockResolvedValue(undefined)
+    vi.spyOn(navigator, 'canShare').mockReturnValue(true)
+    const user = userEvent.setup()
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    // The complete fortnight triggers a background pre-generation.
+    await screen.findByText(/Werkweek compleet!/i)
+    await waitFor(() => expect(mockedGeneratePdf).toHaveBeenCalledTimes(1))
+
+    // Sharing right away reuses the cached file: no extra generation.
+    await user.click(screen.getByRole('button', { name: 'Deel PDF nu' }))
+    await waitFor(() => expect(shareSpy).toHaveBeenCalledTimes(1))
+    expect(mockedGeneratePdf).toHaveBeenCalledTimes(1)
+
+    // The user corrects an entry after the PDF was prepared.
+    mockedGeneratePdf.mockImplementation(async () => createPdfResult('updated') as never)
+    await db.timeEntries.update(entryIds[4], { endTime: '16:30' })
+
+    await waitFor(() => expect(screen.getByText('06:30-16:30')).toBeVisible())
+    await waitFor(() => expect(mockedGeneratePdf).toHaveBeenCalledTimes(2))
+
+    const lastCall = mockedGeneratePdf.mock.calls[1][0]
+    const correctedEntry = lastCall.entries.find((entry) => entry.id === entryIds[4])
+    expect(correctedEntry?.endTime).toBe('16:30')
+
+    // Sharing now sends the regenerated file, not the stale one.
+    await user.click(screen.getByRole('button', { name: 'Deel PDF nu' }))
+    await waitFor(() => expect(shareSpy).toHaveBeenCalledTimes(2))
+    const sharedFiles = (shareSpy.mock.calls[1][0] as ShareData).files ?? []
+    expect(sharedFiles[0]?.name).toBe('updated.pdf')
+    expect(mockedGeneratePdf).toHaveBeenCalledTimes(2)
   })
 
   it('marks a week as leave and shows the leave note', async () => {

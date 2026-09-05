@@ -34,6 +34,17 @@ type ClientSummary = {
   uniqueDates: Set<string>
 }
 
+// A generated PDF together with the exact inputs it was built from. The
+// cached file is only reused while every input is still the same reference;
+// any change to entries, leave weeks, employee or period invalidates it.
+type PreparedPdf = {
+  file: File
+  employee: Employee
+  entries: TimeEntry[]
+  leaveWeekStarts: ReadonlySet<string>
+  periodKey: string
+}
+
 const sortEntries = (entries: TimeEntry[]) => [...entries].sort((left, right) => left.sortOrder - right.sortOrder)
 
 export function WeekPage({
@@ -49,8 +60,7 @@ export function WeekPage({
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState('')
   const [exportSuccess, setExportSuccess] = useState('')
-  const [latestExportFile, setLatestExportFile] = useState<File | null>(null)
-  const [preparedSharePeriodKey, setPreparedSharePeriodKey] = useState('')
+  const [preparedPdf, setPreparedPdf] = useState<PreparedPdf | null>(null)
 
   const { leaveWeekStarts, isLeaveWeek, toggleLeaveWeek } = useLeaveWeeks(activeEmployeeId)
 
@@ -199,13 +209,35 @@ export function WeekPage({
     requiredWeekdayCount > 0 && completedWeekdayCount === requiredWeekdayCount && hasLastWorkFridayEntry
   const periodKey = `${fortnightStartKey}_${fortnightEndKey}`
 
-  useEffect(() => {
-    setLatestExportFile(null)
-    setPreparedSharePeriodKey('')
-  }, [activeEmployeeId, periodKey])
+  const isPreparedPdfCurrent =
+    preparedPdf !== null &&
+    preparedPdf.employee === activeEmployee &&
+    preparedPdf.entries === entries &&
+    preparedPdf.leaveWeekStarts === leaveWeekStarts &&
+    preparedPdf.periodKey === periodKey
 
+  const buildPreparedPdf = useCallback(async (): Promise<PreparedPdf> => {
+    const { generateTimesheetPdf } = await import('../utils/pdfExport')
+    const result = await generateTimesheetPdf({
+      employee: activeEmployee,
+      fortnightStart: fortnightDates[0],
+      entries,
+      leaveWeekStarts,
+    })
+
+    return {
+      file: result.pdfFile,
+      employee: activeEmployee,
+      entries,
+      leaveWeekStarts,
+      periodKey,
+    }
+  }, [activeEmployee, entries, fortnightDates, leaveWeekStarts, periodKey])
+
+  // Pre-generate the PDF as soon as the fortnight is complete so that sharing
+  // is instant. Re-runs whenever any input changes so the cache never goes stale.
   useEffect(() => {
-    if (!isFortnightComplete || preparedSharePeriodKey === periodKey) {
+    if (!isFortnightComplete || isPreparedPdfCurrent) {
       return
     }
 
@@ -213,17 +245,10 @@ export function WeekPage({
 
     void (async () => {
       try {
-        const { generateTimesheetPdf } = await import('../utils/pdfExport')
-        const result = await generateTimesheetPdf({
-          employee: activeEmployee,
-          fortnightStart: fortnightDates[0],
-          entries,
-          leaveWeekStarts,
-        })
+        const prepared = await buildPreparedPdf()
 
         if (!cancelled) {
-          setLatestExportFile(result.pdfFile)
-          setPreparedSharePeriodKey(periodKey)
+          setPreparedPdf(prepared)
         }
       } catch (error) {
         if (!cancelled) {
@@ -235,16 +260,7 @@ export function WeekPage({
     return () => {
       cancelled = true
     }
-  }, [
-    activeEmployee,
-    entries,
-    fortnightDates,
-    isFortnightComplete,
-    latestExportFile,
-    leaveWeekStarts,
-    periodKey,
-    preparedSharePeriodKey,
-  ])
+  }, [buildPreparedPdf, isFortnightComplete, isPreparedPdfCurrent])
 
   useEffect(() => {
     if (!exportError && !exportSuccess) {
@@ -379,7 +395,13 @@ export function WeekPage({
         }),
       )
 
-      setLatestExportFile(result.pdfFile)
+      setPreparedPdf({
+        file: result.pdfFile,
+        employee: activeEmployee,
+        entries,
+        leaveWeekStarts,
+        periodKey,
+      })
       setExportSuccess('PDF geëxporteerd.')
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'PDF export mislukt.')
@@ -391,19 +413,16 @@ export function WeekPage({
   const handleSharePdf = async () => {
     try {
       setExportError('')
-      const { generateTimesheetPdf } = await import('../utils/pdfExport')
 
-      const file = latestExportFile
-        && preparedSharePeriodKey === periodKey
-        ? latestExportFile
-        : (
-            await generateTimesheetPdf({
-              employee: activeEmployee,
-              fortnightStart: fortnightDates[0],
-              entries,
-              leaveWeekStarts,
-            })
-          ).pdfFile
+      let file: File
+
+      if (isPreparedPdfCurrent && preparedPdf) {
+        file = preparedPdf.file
+      } else {
+        const prepared = await buildPreparedPdf()
+        setPreparedPdf(prepared)
+        file = prepared.file
+      }
 
       if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
         throw new Error('Delen wordt niet ondersteund op dit toestel.')
