@@ -11,8 +11,16 @@ declare let self: ServiceWorkerGlobalScope & {
 }
 
 precacheAndRoute(self.__WB_MANIFEST)
-self.skipWaiting()
 clientsClaim()
+
+// A freshly installed service worker stays in the `waiting` state until the
+// user explicitly asks for the update. The app sends a `SKIP_WAITING` message
+// (see utils/appUpdate.ts) which activates the new worker and swaps control.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    void self.skipWaiting()
+  }
+})
 
 registerRoute(
   ({ request, sameOrigin }) =>

@@ -20,7 +20,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'logos/logo_CH-Construct.jpg', 'logos/logo_VBW.png'],
       manifest: {
         name: 'timesheet',
