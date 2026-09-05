@@ -61,6 +61,48 @@ describe('useActiveProfile', () => {
     })
   })
 
+  it('reflects profile edits without changing the active id', async () => {
+    const employeeId = requireNumericId(await db.employees.add(
+      createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
+    ))
+    window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(employeeId))
+
+    const { result } = renderHook(() => useActiveProfile())
+
+    await waitFor(() => {
+      expect(result.current.activeEmployee?.exportRecipient).toBe('CH Construct')
+    })
+
+    await db.employees.update(employeeId, { name: 'Milan V.', exportRecipient: 'VBW', defaultBreakMinutes: 30 })
+
+    await waitFor(() => {
+      expect(result.current.activeEmployeeId).toBe(employeeId)
+      expect(result.current.activeEmployee?.name).toBe('Milan V.')
+      expect(result.current.activeEmployee?.exportRecipient).toBe('VBW')
+      expect(result.current.activeEmployee?.defaultBreakMinutes).toBe(30)
+    })
+  })
+
+  it('clears the active employee when the record is deleted', async () => {
+    const employeeId = requireNumericId(await db.employees.add(
+      createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
+    ))
+    window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(employeeId))
+
+    const { result } = renderHook(() => useActiveProfile())
+
+    await waitFor(() => {
+      expect(result.current.activeEmployee?.name).toBe('Milan')
+    })
+
+    await db.employees.delete(employeeId)
+
+    await waitFor(() => {
+      expect(result.current.activeEmployee).toBeNull()
+    })
+    expect(result.current.activeEmployeeId).toBe(employeeId)
+  })
+
   it('persists a newly selected active employee id', async () => {
     const employeeId = requireNumericId(await db.employees.add(
       createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),

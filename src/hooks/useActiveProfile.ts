@@ -1,3 +1,4 @@
+import { liveQuery } from 'dexie'
 import { useEffect, useState } from 'react'
 
 import { type Employee, db } from '../db/database'
@@ -22,20 +23,24 @@ export function useActiveProfile() {
   const [activeEmployeeId, setActiveEmployeeIdInternal] = useState<number | null>(() => readStoredActiveProfileId())
   const [activeEmployee, setActiveEmployee] = useState<Employee | null>(null)
 
-  // Fetch the active employee from database when ID changes
+  // Observe the active employee record so that edits (name, export recipient,
+  // defaults) and deletion are reflected immediately without a reload.
   useEffect(() => {
     if (activeEmployeeId === null) {
       return
     }
 
-    void db.employees
-      .get(activeEmployeeId)
-      .then((employee) => {
+    const subscription = liveQuery(() => db.employees.get(activeEmployeeId)).subscribe({
+      next: (employee) => {
         setActiveEmployee(employee ?? null)
-      })
-      .catch(() => {
+      },
+      error: (error) => {
+        console.error('Failed to load active employee', error)
         setActiveEmployee(null)
-      })
+      },
+    })
+
+    return () => subscription.unsubscribe()
   }, [activeEmployeeId])
 
   // Persist activeEmployeeId to localStorage
