@@ -8,6 +8,7 @@ import {
   getWeekdayDates,
   getFortnightStart,
   getFortnightDates,
+  isSecondWeekOfFortnight,
   isSameDate,
   isWeekend,
   formatLongDate,
@@ -174,24 +175,62 @@ describe('weekHelpers utilities', () => {
   })
 
   describe('getFortnightStart', () => {
-    it('should return Monday (same as getStartOfWeek)', () => {
-      const wednesday = new Date(2026, 3, 15)
-      const result = getFortnightStart(wednesday)
-      expect(formatDateKey(result)).toBe('2026-04-13') // Monday
+    it('should return the Monday of the odd ISO week that opens the period', () => {
+      // 2026-04-15 is a Wednesday in ISO week 16 (even) -> period 15-16 starts 2026-04-06.
+      const result = getFortnightStart(new Date(2026, 3, 15))
+      expect(formatDateKey(result)).toBe('2026-04-06')
       expect(result.getDay()).toBe(1)
+      expect(getIsoWeekNumber(result)).toBe(15)
+    })
+
+    it('should keep the same start for every day of the period', () => {
+      const monday = new Date(2026, 3, 6)
+      const sundayTwoWeeksLater = new Date(2026, 3, 19)
+      const nextMonday = new Date(2026, 3, 20)
+
+      expect(formatDateKey(getFortnightStart(monday))).toBe('2026-04-06')
+      expect(formatDateKey(getFortnightStart(sundayTwoWeeksLater))).toBe('2026-04-06')
+      expect(formatDateKey(getFortnightStart(nextMonday))).toBe('2026-04-20')
+    })
+
+    it('should produce consecutive non-overlapping 14-day periods', () => {
+      let cursor = new Date(2025, 11, 29)
+
+      for (let index = 0; index < 60; index += 1) {
+        const start = getFortnightStart(cursor)
+        const nextStart = getFortnightStart(addDays(start, 14))
+
+        expect(formatDateKey(start)).toBe(formatDateKey(cursor))
+        expect(formatDateKey(nextStart)).toBe(formatDateKey(addDays(cursor, 14)))
+        cursor = addDays(cursor, 14)
+      }
+    })
+
+    it('should be stable across DST transitions', () => {
+      // Late March 2026 (DST starts 2026-03-29 in Europe).
+      expect(formatDateKey(getFortnightStart(new Date(2026, 2, 23)))).toBe('2026-03-23')
+      expect(formatDateKey(getFortnightStart(new Date(2026, 2, 30)))).toBe('2026-03-23')
+      expect(formatDateKey(getFortnightStart(new Date(2026, 3, 5)))).toBe('2026-03-23')
+    })
+  })
+
+  describe('isSecondWeekOfFortnight', () => {
+    it('should identify the second week of a period', () => {
+      expect(isSecondWeekOfFortnight(new Date(2026, 3, 10))).toBe(false) // Friday week 15
+      expect(isSecondWeekOfFortnight(new Date(2026, 3, 17))).toBe(true) // Friday week 16
     })
   })
 
   describe('getFortnightDates', () => {
-    it('should return 14 consecutive days starting from Monday', () => {
-      const wednesday = new Date(2026, 3, 15) // Wednesday, week starting April 13
+    it('should return 14 consecutive days starting from the period Monday', () => {
+      const wednesday = new Date(2026, 3, 15) // Wednesday in the second week of the period
       const fortnight = getFortnightDates(wednesday)
 
       expect(fortnight).toHaveLength(14)
-      expect(formatDateKey(fortnight[0])).toBe('2026-04-13') // Monday week 1
-      expect(formatDateKey(fortnight[6])).toBe('2026-04-19') // Sunday week 1
-      expect(formatDateKey(fortnight[7])).toBe('2026-04-20') // Monday week 2
-      expect(formatDateKey(fortnight[13])).toBe('2026-04-26') // Sunday week 2
+      expect(formatDateKey(fortnight[0])).toBe('2026-04-06') // Monday week 1
+      expect(formatDateKey(fortnight[6])).toBe('2026-04-12') // Sunday week 1
+      expect(formatDateKey(fortnight[7])).toBe('2026-04-13') // Monday week 2
+      expect(formatDateKey(fortnight[13])).toBe('2026-04-19') // Sunday week 2
     })
 
     it('should include weekends', () => {

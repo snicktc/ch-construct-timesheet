@@ -50,7 +50,27 @@ export const getWeekdayDates = (value: Date) => {
 
 export const getWeekStartKey = (value: Date) => formatDateKey(getStartOfWeek(value))
 
-export const getFortnightStart = (value: Date) => getStartOfWeek(value)
+const MS_PER_DAY = 86400000
+
+// Monday of ISO week 1 of 2026. Fortnights are counted in fixed 14-day blocks
+// from this epoch, so every date belongs to exactly one, non-overlapping
+// period. Because the epoch is an odd ISO week, periods start on odd ISO
+// weeks (15-16, 17-18, ...). Note: after a 53-week ISO year the parity flips
+// for the following year; the block boundaries themselves stay stable.
+const FORTNIGHT_EPOCH = new Date(2025, 11, 29)
+
+export const getFortnightStart = (value: Date) => {
+  const weekStart = getStartOfWeek(value)
+  // Math.round absorbs the one-hour offset introduced by DST transitions.
+  const daysSinceEpoch = Math.round((weekStart.getTime() - FORTNIGHT_EPOCH.getTime()) / MS_PER_DAY)
+  const weeksSinceEpoch = Math.floor(daysSinceEpoch / 7)
+  const isSecondWeekOfFortnight = ((weeksSinceEpoch % 2) + 2) % 2 === 1
+
+  return isSecondWeekOfFortnight ? addDays(weekStart, -7) : weekStart
+}
+
+export const isSecondWeekOfFortnight = (value: Date) =>
+  formatDateKey(getStartOfWeek(value)) !== formatDateKey(getFortnightStart(value))
 
 export const getFortnightDates = (value: Date) => {
   const start = getFortnightStart(value)

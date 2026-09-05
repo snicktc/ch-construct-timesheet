@@ -126,7 +126,7 @@ describe('generateTimesheetPdf', () => {
         isActive: true,
         createdAt: new Date('2026-04-01T00:00:00.000Z'),
       },
-      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
       entries: [
         {
           id: 1,
@@ -146,9 +146,9 @@ describe('generateTimesheetPdf', () => {
       ],
     })
 
-    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
-    expect(result.weekStart).toBe('2026-04-13')
-    expect(result.weekEnd).toBe('2026-04-26')
+    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_15-16.pdf')
+    expect(result.weekStart).toBe('2026-04-06')
+    expect(result.weekEnd).toBe('2026-04-19')
     expect(pdfMockState.autoTableMock).toHaveBeenCalledTimes(3)
     expect(pdfMockState.jsPdfInstances[0]?.addImage).toHaveBeenCalled()
     expect(pdfMockState.jsPdfInstances[0]?.text).toHaveBeenCalledWith('WERKURENREGISTRATIE', expect.any(Number), 18)
@@ -184,15 +184,15 @@ describe('generateTimesheetPdf', () => {
         isActive: true,
         createdAt: new Date('2026-04-01T00:00:00.000Z'),
       },
-      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
       entries,
     })
     const duration = performance.now() - startTime
 
     expect(duration).toBeLessThan(1500)
-    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
+    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_15-16.pdf')
     expect(result.pdfBlob).toBeInstanceOf(Blob)
-    expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_16-17.pdf')
+    expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_15-16.pdf')
     expect(mockGetDefaultLogoPathForRecipient).toHaveBeenCalledWith('VBW')
   })
 
@@ -208,13 +208,13 @@ describe('generateTimesheetPdf', () => {
         isActive: true,
         createdAt: new Date('2026-04-01T00:00:00.000Z'),
       },
-      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
       entries: [
         // Entry in the leave week (should be dropped from the PDF).
         {
           id: 1,
           employeeId: 1,
-          date: '2026-04-14',
+          date: '2026-04-07',
           sortOrder: 0,
           clientId: 1,
           clientName: 'CH Construct',
@@ -230,7 +230,7 @@ describe('generateTimesheetPdf', () => {
         {
           id: 2,
           employeeId: 1,
-          date: '2026-04-21',
+          date: '2026-04-14',
           sortOrder: 0,
           clientId: 1,
           clientName: 'CH Construct',
@@ -243,17 +243,17 @@ describe('generateTimesheetPdf', () => {
           notes: '',
         },
       ],
-      leaveWeekStarts: ['2026-04-13'],
+      leaveWeekStarts: ['2026-04-06'],
     })
 
     // Only one week table + one summary table.
     expect(pdfMockState.autoTableMock).toHaveBeenCalledTimes(2)
-    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_17.pdf')
-    expect(result.weekStart).toBe('2026-04-20')
-    expect(result.weekEnd).toBe('2026-04-26')
+    expect(result.fileName).toBe('Werkuren_Milan_Test_Week_16.pdf')
+    expect(result.weekStart).toBe('2026-04-13')
+    expect(result.weekEnd).toBe('2026-04-19')
 
     const weekTableConfig = pdfMockState.autoTableMock.mock.calls[0]?.[1] as { head: string[][] }
-    expect(weekTableConfig.head[0][0]).toBe('Week\n17')
+    expect(weekTableConfig.head[0][0]).toBe('Week\n16')
 
     const summaryConfig = pdfMockState.autoTableMock.mock.calls[1]?.[1] as { foot: string[][] }
     expect(summaryConfig.foot[0][0]).toBe('TOTAAL WEEK')
@@ -272,9 +272,9 @@ describe('generateTimesheetPdf', () => {
           isActive: true,
           createdAt: new Date('2026-04-01T00:00:00.000Z'),
         },
-        fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+        fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
         entries: [],
-        leaveWeekStarts: ['2026-04-13', '2026-04-20'],
+        leaveWeekStarts: ['2026-04-06', '2026-04-13'],
       }),
     ).rejects.toThrow(/verlof/i)
   })
@@ -312,7 +312,7 @@ describe('generateTimesheetPdf', () => {
     const makeEntry = (id: number, startTime: string, endTime: string) => ({
       id,
       employeeId: 1,
-      date: '2026-04-14',
+      date: '2026-04-07',
       sortOrder: id,
       clientId: 1,
       clientName: 'CH Construct',
@@ -336,8 +336,8 @@ describe('generateTimesheetPdf', () => {
         isActive: true,
         createdAt: new Date('2026-04-01T00:00:00.000Z'),
       },
-      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
-      // Tuesday has three rows (body rows 1-3): row 1 on page 1, rows 2-3 on page 2.
+      fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
+      // Tuesday (week one) has three rows (body rows 1-3): row 1 on page 1, rows 2-3 on page 2.
       entries: [makeEntry(0, '06:00', '08:00'), makeEntry(1, '08:00', '10:00'), makeEntry(2, '10:00', '12:00')],
     })
 

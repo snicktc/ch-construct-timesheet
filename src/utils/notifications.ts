@@ -5,7 +5,7 @@ import {
   NOTIFICATION_SETTINGS_STORAGE_KEY,
 } from './storageKeys'
 import { parseTimeToMinutes } from './timeCalc'
-import { formatDateKey, getFortnightDates, getStartOfWeek } from './weekHelpers'
+import { formatDateKey, getFortnightDates, getWeekStartKey } from './weekHelpers'
 
 const baseUrl = import.meta.env.BASE_URL
 
@@ -101,20 +101,56 @@ const shouldSendDailyReminder = (settings: NotificationSettings, now: Date) => {
   return getNowMinutes(now) >= parseTimeToMinutes(settings.dailyReminderTime)
 }
 
-const hasCompleteFortnight = async (employeeId: number, anchorDate: Date) => {
-  const fortnightDates = getFortnightDates(getStartOfWeek(anchorDate))
-  const weekdayKeys = fortnightDates.filter((date) => {
-    const day = date.getDay()
-    return day >= 1 && day <= 5
-  }).map(formatDateKey)
+const getFortnightPeriodKey = (anchorDate: Date) => {
+  const fortnightDates = getFortnightDates(anchorDate)
+  return `${formatDateKey(fortnightDates[0])}_${formatDateKey(fortnightDates[13])}`
+}
+
+/**
+ * The fortnight is ready to export when every weekday of the non-leave weeks
+ * has at least one entry. Weeks marked as leave are skipped entirely, matching
+ * the completeness rule of the fortnight overview.
+ *
+ * Returns the Monday key of the last non-leave week (the week whose Friday
+ * should trigger the prompt), or null when the period is not complete.
+ */
+const getCompleteFortnightLastWorkWeek = async (employeeId: number, anchorDate: Date) => {
+  const fortnightDates = getFortnightDates(anchorDate)
+  const weekStartKeys = [getWeekStartKey(fortnightDates[0]), getWeekStartKey(fortnightDates[7])]
+
+  const leaveRows = await db.leaveWeeks
+    .where('[employeeId+weekStart]')
+    .anyOf(weekStartKeys.map((weekStart) => [employeeId, weekStart]))
+    .toArray()
+  const leaveWeekStarts = new Set(leaveRows.map((row) => row.weekStart))
+
+  const workWeekStarts = weekStartKeys.filter((weekStart) => !leaveWeekStarts.has(weekStart))
+
+  if (workWeekStarts.length === 0) {
+    return null
+  }
+
+  const weekdayKeys = fortnightDates
+    .filter((date) => {
+      const day = date.getDay()
+      return day >= 1 && day <= 5 && !leaveWeekStarts.has(getWeekStartKey(date))
+    })
+    .map(formatDateKey)
 
   const entries = await db.timeEntries
     .where('[employeeId+date]')
-    .between([employeeId, weekdayKeys[0]], [employeeId, weekdayKeys[weekdayKeys.length - 1]], true, true)
+    .between(
+      [employeeId, formatDateKey(fortnightDates[0])],
+      [employeeId, formatDateKey(fortnightDates[13])],
+      true,
+      true,
+    )
     .toArray()
 
   const completedDates = new Set(entries.map((entry) => entry.date))
-  return weekdayKeys.every((dateKey) => completedDates.has(dateKey))
+  const isComplete = weekdayKeys.every((dateKey) => completedDates.has(dateKey))
+
+  return isComplete ? workWeekStarts[workWeekStarts.length - 1] : null
 }
 
 const shouldSendFridayExportPrompt = async (
@@ -130,15 +166,17 @@ const shouldSendFridayExportPrompt = async (
     return false
   }
 
-  const fortnightDates = getFortnightDates(getStartOfWeek(now))
-  const periodKey = `${formatDateKey(fortnightDates[0])}_${formatDateKey(fortnightDates[13])}`
+  const periodKey = getFortnightPeriodKey(now)
   const lastPromptPeriod = window.localStorage.getItem(LAST_EXPORT_NOTIFICATION_KEY)
 
   if (lastPromptPeriod === periodKey) {
     return false
   }
 
-  return hasCompleteFortnight(activeEmployeeId, now)
+  const lastWorkWeekStart = await getCompleteFortnightLastWorkWeek(activeEmployeeId, now)
+
+  // Only prompt on the Friday that closes the last worked week of the period.
+  return lastWorkWeekStart !== null && lastWorkWeekStart === getWeekStartKey(now)
 }
 
 export const runNotificationChecks = async (activeEmployeeId: number | null) => {
@@ -166,15 +204,11 @@ export const runNotificationChecks = async (activeEmployeeId: number | null) => 
   }
 
   if (await shouldSendFridayExportPrompt(settings, now, activeEmployeeId)) {
-    const fortnightDates = getFortnightDates(getStartOfWeek(now))
     await showAppNotification('2 weken compleet? Exporteer en verstuur.', {
       body: 'Je 2-wekelijks overzicht staat klaar om te exporteren.',
       tag: 'friday-export-prompt',
       data: { url: `${baseUrl}?tab=week&exportPrompt=1` },
     })
-    window.localStorage.setItem(
-      LAST_EXPORT_NOTIFICATION_KEY,
-      `${formatDateKey(fortnightDates[0])}_${formatDateKey(fortnightDates[13])}`,
-    )
+    window.localStorage.setItem(LAST_EXPORT_NOTIFICATION_KEY, getFortnightPeriodKey(now))
   }
 }

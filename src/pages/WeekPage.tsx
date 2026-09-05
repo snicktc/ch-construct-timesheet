@@ -13,6 +13,7 @@ import {
   formatLongDate,
   formatShortDate,
   getFortnightDates,
+  getFortnightStart,
   getIsoWeekNumber,
   getWeekStartKey,
   isWeekend,
@@ -74,8 +75,9 @@ export function WeekPage({
         let candidate = addDays(current, direction * 14)
 
         for (let hop = 0; hop < maxHops; hop += 1) {
-          const weekOneStart = getWeekStartKey(candidate)
-          const weekTwoStart = getWeekStartKey(addDays(candidate, 7))
+          const periodStart = getFortnightStart(candidate)
+          const weekOneStart = formatDateKey(periodStart)
+          const weekTwoStart = getWeekStartKey(addDays(periodStart, 7))
           const bothOnLeave = leaveWeekStarts.has(weekOneStart) && leaveWeekStarts.has(weekTwoStart)
 
           if (!bothOnLeave) {

@@ -81,66 +81,136 @@ describe('notifications utilities', () => {
     expect(showNotification).toHaveBeenCalledTimes(1)
   })
 
-  it('sends the Friday export prompt only once per period when the fortnight is complete', async () => {
-    vi.useRealTimers()
+  describe('Friday export prompt', () => {
+    // Fortnight 2026-04-06 .. 2026-04-19 (ISO weeks 15-16).
+    const WEEK_ONE_WEEKDAYS = ['2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09', '2026-04-10']
+    const WEEK_TWO_WEEKDAYS = ['2026-04-13', '2026-04-14', '2026-04-15', '2026-04-16', '2026-04-17']
+    const PERIOD_KEY = '2026-04-06_2026-04-19'
 
-    const employeeId = requireNumericId(await db.employees.add(
-      createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
-    ))
+    const seedEmployeeWithEntries = async (dates: string[]) => {
+      vi.useRealTimers()
 
-    window.localStorage.setItem(
-      NOTIFICATION_SETTINGS_STORAGE_KEY,
-      JSON.stringify({
-        dailyReminderEnabled: false,
-        dailyReminderTime: '17:00',
-        fridayExportPromptEnabled: true,
-      }),
-    )
+      const employeeId = requireNumericId(await db.employees.add(
+        createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
+      ))
 
-    const dates = [
-      '2026-04-13',
-      '2026-04-14',
-      '2026-04-15',
-      '2026-04-16',
-      '2026-04-17',
-      '2026-04-20',
-      '2026-04-21',
-      '2026-04-22',
-      '2026-04-23',
-      '2026-04-24',
-    ]
-
-    await db.timeEntries.bulkAdd(
-      dates.map((date, index) =>
-        createTimeEntryRecord({
-          employeeId,
-          date,
-          sortOrder: index,
-          clientId: 1,
-          clientName: 'CH Construct',
-          location: 'Gent',
-          startTime: '06:30',
-          endTime: '15:30',
+      window.localStorage.setItem(
+        NOTIFICATION_SETTINGS_STORAGE_KEY,
+        JSON.stringify({
+          dailyReminderEnabled: false,
+          dailyReminderTime: '17:00',
+          fridayExportPromptEnabled: true,
         }),
-      ),
-    )
+      )
 
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-04-17T18:30:00'))
+      if (dates.length > 0) {
+        await db.timeEntries.bulkAdd(
+          dates.map((date, index) =>
+            createTimeEntryRecord({
+              employeeId,
+              date,
+              sortOrder: index,
+              clientId: 1,
+              clientName: 'CH Construct',
+              location: 'Gent',
+              startTime: '06:30',
+              endTime: '15:30',
+            }),
+          ),
+        )
+      }
 
-    await runNotificationChecks(employeeId)
+      // Keep real timers so IndexedDB work is not stalled; vi.setSystemTime
+      // still mocks Date on its own.
+      return employeeId
+    }
 
-    expect(showNotification).toHaveBeenCalledTimes(1)
-    expect(showNotification).toHaveBeenCalledWith(
-      '2 weken compleet? Exporteer en verstuur.',
-      expect.objectContaining({
-        tag: 'friday-export-prompt',
-      }),
-    )
-    expect(window.localStorage.getItem(LAST_EXPORT_NOTIFICATION_KEY)).toBe('2026-04-13_2026-04-26')
+    const expectExportPromptSent = () => {
+      expect(showNotification).toHaveBeenCalledTimes(1)
+      expect(showNotification).toHaveBeenCalledWith(
+        '2 weken compleet? Exporteer en verstuur.',
+        expect.objectContaining({ tag: 'friday-export-prompt' }),
+      )
+    }
 
-    await runNotificationChecks(employeeId)
+    it('sends the prompt once on the Friday of the second week when both weeks are complete', async () => {
+      const employeeId = await seedEmployeeWithEntries([...WEEK_ONE_WEEKDAYS, ...WEEK_TWO_WEEKDAYS])
+      vi.setSystemTime(new Date('2026-04-17T18:30:00'))
 
-    expect(showNotification).toHaveBeenCalledTimes(1)
+      await runNotificationChecks(employeeId)
+
+      expectExportPromptSent()
+      expect(window.localStorage.getItem(LAST_EXPORT_NOTIFICATION_KEY)).toBe(PERIOD_KEY)
+
+      await runNotificationChecks(employeeId)
+
+      expect(showNotification).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not prompt on the Friday of the first week even when that week is complete', async () => {
+      const employeeId = await seedEmployeeWithEntries(WEEK_ONE_WEEKDAYS)
+      vi.setSystemTime(new Date('2026-04-10T18:30:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expect(showNotification).not.toHaveBeenCalled()
+      expect(window.localStorage.getItem(LAST_EXPORT_NOTIFICATION_KEY)).toBeNull()
+    })
+
+    it('does not prompt when a weekday of the period is missing', async () => {
+      const employeeId = await seedEmployeeWithEntries([
+        ...WEEK_ONE_WEEKDAYS,
+        ...WEEK_TWO_WEEKDAYS.filter((date) => date !== '2026-04-14'),
+      ])
+      vi.setSystemTime(new Date('2026-04-17T18:30:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expect(showNotification).not.toHaveBeenCalled()
+    })
+
+    it('does not prompt before 18:00', async () => {
+      const employeeId = await seedEmployeeWithEntries([...WEEK_ONE_WEEKDAYS, ...WEEK_TWO_WEEKDAYS])
+      vi.setSystemTime(new Date('2026-04-17T17:59:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expect(showNotification).not.toHaveBeenCalled()
+    })
+
+    it('ignores a leave week and prompts on the Friday of the remaining worked week', async () => {
+      // Week two is leave: only week one needs to be complete, prompt on its Friday.
+      const employeeId = await seedEmployeeWithEntries(WEEK_ONE_WEEKDAYS)
+      await db.leaveWeeks.add({ employeeId, weekStart: '2026-04-13', createdAt: new Date() })
+      vi.setSystemTime(new Date('2026-04-10T18:30:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expectExportPromptSent()
+      expect(window.localStorage.getItem(LAST_EXPORT_NOTIFICATION_KEY)).toBe(PERIOD_KEY)
+    })
+
+    it('prompts on the Friday of week two when week one is leave', async () => {
+      const employeeId = await seedEmployeeWithEntries(WEEK_TWO_WEEKDAYS)
+      await db.leaveWeeks.add({ employeeId, weekStart: '2026-04-06', createdAt: new Date() })
+      vi.setSystemTime(new Date('2026-04-17T18:30:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expectExportPromptSent()
+    })
+
+    it('never prompts when both weeks are leave', async () => {
+      const employeeId = await seedEmployeeWithEntries([])
+      await db.leaveWeeks.bulkAdd([
+        { employeeId, weekStart: '2026-04-06', createdAt: new Date() },
+        { employeeId, weekStart: '2026-04-13', createdAt: new Date() },
+      ])
+      vi.setSystemTime(new Date('2026-04-17T18:30:00'))
+
+      await runNotificationChecks(employeeId)
+
+      expect(showNotification).not.toHaveBeenCalled()
+    })
   })
 })

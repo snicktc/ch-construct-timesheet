@@ -9,6 +9,18 @@
 - verlofweken tellen niet mee in subtotalen, samenvatting en de “werkweek compleet”-melding
 - PDF-export laat verlofweken volledig weg; bij een half-verlof 2-wekenblok toont de PDF enkel de gewerkte week (titel, periode en bestandsnaam passen mee aan)
 
+### Gewijzigd
+
+- de 2-wekenperiode is nu vast verankerd: elke periode start op maandag van een oneven ISO-week (bv. week 15-16, 17-18) en verschuift niet meer mee met de dag waarop de app geopend wordt
+
+### Opgelost
+
+- verlofweken worden nu mee opgenomen in backup-export en -import en gewist bij “Wis alle data” (backupformaat versie 3; oudere backups blijven importeerbaar)
+- de vooraf gegenereerde PDF wordt opnieuw aangemaakt wanneer registraties of verlofweken wijzigen, zodat “Deel PDF nu” nooit een verouderd bestand verstuurt
+- profielwijzigingen (naam, bestemmeling, standaardwaarden) zijn meteen zichtbaar in het dag- en weekoverzicht en in de PDF, zonder herladen of profielwissel
+- dagtotalen in de PDF worden op de juiste pagina getekend wanneer een weektabel over meerdere pagina's loopt
+- de vrijdag-exportnotificatie werkt nu effectief: ze verschijnt op vrijdag vanaf 18:00 van de laatste gewerkte week van de periode wanneer alle werkdagen ingevuld zijn, met respect voor verlofweken
+
 ### Technisch
 
 - nieuwe Dexie-tabel `leaveWeeks` (database versie 3) met samengestelde index `[employeeId+weekStart]`
