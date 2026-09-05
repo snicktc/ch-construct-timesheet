@@ -279,6 +279,123 @@ describe('generateTimesheetPdf', () => {
     ).rejects.toThrow(/verlof/i)
   })
 
+  it('draws merged day totals on the page where their rows were rendered', async () => {
+    type DidDrawCellHook = (hookData: {
+      section: string
+      pageNumber: number
+      row: { index: number }
+      column: { index: number }
+      cell: { x: number; y: number; width: number; height: number }
+    }) => void
+
+    // Simulate autoTable paginating the first (week) table: body rows 0-1 end
+    // up on page 1, rows 2+ continue at the top of page 2.
+    pdfMockState.autoTableMock.mockImplementationOnce((...args: unknown[]) => {
+      const config = args[1] as { body: string[][]; didDrawCell: DidDrawCellHook }
+      const rowHeight = 7
+
+      config.body.forEach((_, rowIndex) => {
+        const onFirstPage = rowIndex < 2
+        const pageNumber = onFirstPage ? 1 : 2
+        const y = onFirstPage ? 50 + rowIndex * rowHeight : 20 + (rowIndex - 2) * rowHeight
+
+        config.didDrawCell({
+          section: 'body',
+          pageNumber,
+          row: { index: rowIndex },
+          column: { index: 8 },
+          cell: { x: 170, y, width: 17, height: rowHeight },
+        })
+      })
+    })
+
+    const makeEntry = (id: number, startTime: string, endTime: string) => ({
+      id,
+      employeeId: 1,
+      date: '2026-04-14',
+      sortOrder: id,
+      clientId: 1,
+      clientName: 'CH Construct',
+      location: 'Gent',
+      startTime,
+      endTime,
+      breakMinutes: 0,
+      travelCreditMinutes: 0,
+      isDriver: 'Ja' as const,
+      notes: '',
+    })
+
+    await generateTimesheetPdf({
+      employee: {
+        id: 1,
+        name: 'Milan Test',
+        exportRecipient: 'CH Construct',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      fortnightStart: new Date('2026-04-13T00:00:00.000Z'),
+      // Tuesday has three rows (body rows 1-3): row 1 on page 1, rows 2-3 on page 2.
+      entries: [makeEntry(0, '06:00', '08:00'), makeEntry(1, '08:00', '10:00'), makeEntry(2, '10:00', '12:00')],
+    })
+
+    const doc = pdfMockState.jsPdfInstances[0]
+    if (!doc) {
+      throw new Error('Expected a jsPDF instance')
+    }
+
+    // Build a chronological timeline of the relevant drawing calls.
+    const timeline = [
+      ...doc.setPage.mock.calls.map((call, index) => ({
+        order: doc.setPage.mock.invocationCallOrder[index],
+        kind: 'setPage' as const,
+        args: call,
+      })),
+      ...doc.rect.mock.calls.map((call, index) => ({
+        order: doc.rect.mock.invocationCallOrder[index],
+        kind: 'rect' as const,
+        args: call,
+      })),
+      ...doc.text.mock.calls.map((call, index) => ({
+        order: doc.text.mock.invocationCallOrder[index],
+        kind: 'text' as const,
+        args: call,
+      })),
+    ].sort((left, right) => left.order - right.order)
+
+    const activePageAt = (order: number) => {
+      const lastSetPage = timeline
+        .filter((item) => item.kind === 'setPage' && item.order < order)
+        .at(-1)
+      return lastSetPage ? (lastSetPage.args[0] as number) : 1
+    }
+
+    // The day total "06:00" belongs to the first row of Tuesday (page 1, y=57).
+    const dayTotalText = timeline.find((item) => item.kind === 'text' && item.args[0] === '06:00')
+    expect(dayTotalText).toBeDefined()
+    expect(activePageAt(dayTotalText!.order)).toBe(1)
+    expect(dayTotalText!.args[2]).toBeCloseTo(57 + 7 / 2 + 1.1)
+
+    // The remaining two Tuesday rows form a 14mm segment at the top of page 2.
+    const page2Rect = timeline.find((item) => item.kind === 'rect' && item.args[1] === 20 && item.args[3] === 14)
+    expect(page2Rect).toBeDefined()
+    expect(activePageAt(page2Rect!.order)).toBe(2)
+
+    // No rect may span across pages (negative or absurd height).
+    for (const item of timeline.filter((entry) => entry.kind === 'rect')) {
+      expect(item.args[3] as number).toBeGreaterThan(0)
+      expect(item.args[3] as number).toBeLessThan(100)
+    }
+
+    // After drawing the segments the document is switched back to the last
+    // page so the tables that follow continue in the right place.
+    const lastRectOrder = Math.max(...timeline.filter((item) => item.kind === 'rect').map((item) => item.order))
+    const restoreCall = timeline.find((item) => item.kind === 'setPage' && item.order > lastRectOrder)
+    expect(restoreCall?.args[0]).toBe(2)
+  })
+
   it('uses compact table settings that keep the summary together and subtotal readable', async () => {
     await generateTimesheetPdf({
       employee: {

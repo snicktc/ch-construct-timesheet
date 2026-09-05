@@ -264,7 +264,12 @@ const addWeekTable = (
     return total + calculateDayTotalMinutes(dateEntries)
   }, 0)
 
-  type DayMergeEntry = {
+  // One visual segment of the merged "Totaal/dag" column. A day normally has
+  // exactly one segment; when autoTable breaks a day across pages there is
+  // one segment per page so that each is drawn on its own page.
+  type DayMergeSegment = {
+    dayIdx: number
+    pageNumber: number
     value: string
     cellX: number
     cellW: number
@@ -274,7 +279,8 @@ const addWeekTable = (
     isWeekend: boolean
   }
 
-  const dayMergeMap = new Map<number, DayMergeEntry>()
+  const dayMergeSegments = new Map<string, DayMergeSegment>()
+  const segmentKey = (dayIdx: number, pageNumber: number) => `${pageNumber}:${dayIdx}`
   const edgeRowFillColor: [number, number, number] = [232, 232, 232]
   const weekendFillColor: [number, number, number] = [242, 242, 242]
 
@@ -360,6 +366,7 @@ const addWeekTable = (
 
       const rowIdx = hookData.row.index
       const dayIdx = rowDayIndices[rowIdx] ?? 0
+      const pageNumber = hookData.pageNumber
       const originalValue = body[rowIdx]?.[8] ?? ''
       const cellX = hookData.cell.x
       const cellW = hookData.cell.width
@@ -367,10 +374,13 @@ const addWeekTable = (
       const cellH = hookData.cell.height
 
       const isWeekendRow = rowIsWeekend[rowIdx] ?? false
-      const existing = dayMergeMap.get(dayIdx)
+      const key = segmentKey(dayIdx, pageNumber)
+      const existing = dayMergeSegments.get(key)
 
       if (!existing) {
-        dayMergeMap.set(dayIdx, {
+        dayMergeSegments.set(key, {
+          dayIdx,
+          pageNumber,
           value: originalValue,
           cellX,
           cellW,
@@ -389,26 +399,32 @@ const addWeekTable = (
   })
 
   const finalY = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? startY
+  const lastPage = doc.getNumberOfPages()
 
-  for (const [dayIdx, entry] of dayMergeMap) {
-    const hasMultipleRows = entry.endY - entry.startY > entry.cellH * 1.5
+  // Draw the merged day-total cells. Each segment is drawn on the page where
+  // its rows were rendered; the document is switched back to the last page
+  // afterwards so subsequent tables continue in the right place.
+  for (const segment of dayMergeSegments.values()) {
+    const hasMultipleRows = segment.endY - segment.startY > segment.cellH * 1.5
 
-    if (!hasMultipleRows && !entry.value) {
+    if (!hasMultipleRows && !segment.value) {
       continue
     }
 
-    const fillColor: [number, number, number] = entry.isWeekend
+    doc.setPage(segment.pageNumber)
+
+    const fillColor: [number, number, number] = segment.isWeekend
       ? weekendFillColor
-      : dayIdx % 2 === 0
+      : segment.dayIdx % 2 === 0
         ? [255, 255, 255]
         : [235, 242, 250]
 
     if (hasMultipleRows) {
       doc.setFillColor(...fillColor)
-      doc.rect(entry.cellX, entry.startY, entry.cellW, entry.endY - entry.startY, 'F')
+      doc.rect(segment.cellX, segment.startY, segment.cellW, segment.endY - segment.startY, 'F')
     }
 
-    if (!entry.value) {
+    if (!segment.value) {
       continue
     }
 
@@ -416,10 +432,11 @@ const addWeekTable = (
     doc.setFontSize(9)
     doc.setTextColor(26, 26, 26)
 
-    const midY = entry.startY + (entry.endY - entry.startY) / 2 + 1.1
-    doc.text(entry.value, entry.cellX + entry.cellW - 1.8, midY, { align: 'right' })
+    const midY = segment.startY + (segment.endY - segment.startY) / 2 + 1.1
+    doc.text(segment.value, segment.cellX + segment.cellW - 1.8, midY, { align: 'right' })
   }
 
+  doc.setPage(lastPage)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(0, 0, 0)
 
