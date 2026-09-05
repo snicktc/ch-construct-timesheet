@@ -1,4 +1,4 @@
-import type { Client, Employee, Location, TimeEntry, WeekExport } from '../db/database'
+import type { Client, Employee, LeaveWeek, Location, TimeEntry, WeekExport } from '../db/database'
 import { createEmployeeRecord, db } from '../db/database'
 import { APP_STORAGE_KEYS, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
 
@@ -19,8 +19,14 @@ type BackupWeekExport = WeekExport & {
   exportedAt: Date | string
 }
 
+type BackupLeaveWeek = LeaveWeek & {
+  createdAt: Date | string
+}
+
+export const APP_BACKUP_VERSION = 3
+
 type AppBackupData = {
-  version: 2
+  version: typeof APP_BACKUP_VERSION
   exportedAt: string
   appState: {
     localStorage: Record<string, string>
@@ -31,17 +37,40 @@ type AppBackupData = {
     locations: Location[]
     timeEntries: TimeEntry[]
     weekExports: BackupWeekExport[]
+    leaveWeeks: BackupLeaveWeek[]
   }
 }
 
-type LegacyAppBackupData = Omit<AppBackupData, 'version' | 'data'> & {
+// Version 2 predates the leaveWeeks table.
+type AppBackupDataV2 = Omit<AppBackupData, 'version' | 'data'> & {
+  version: 2
+  data: Omit<AppBackupData['data'], 'leaveWeeks'> & {
+    leaveWeeks?: BackupLeaveWeek[]
+  }
+}
+
+// Version 1 additionally carried an inline exportLogo per employee.
+type LegacyAppBackupData = Omit<AppBackupDataV2, 'version' | 'data'> & {
   version: 1
-  data: Omit<AppBackupData['data'], 'employees'> & {
+  data: Omit<AppBackupDataV2['data'], 'employees'> & {
     employees: BackupEmployeeV1[]
   }
 }
 
-type SupportedAppBackupData = AppBackupData | LegacyAppBackupData
+type SupportedAppBackupData = AppBackupData | AppBackupDataV2 | LegacyAppBackupData
+
+const SUPPORTED_BACKUP_VERSIONS: ReadonlyArray<number> = [1, 2, APP_BACKUP_VERSION]
+
+const ALL_TABLES = () => [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports, db.leaveWeeks]
+
+const clearAllTables = async () => {
+  await db.leaveWeeks.clear()
+  await db.weekExports.clear()
+  await db.timeEntries.clear()
+  await db.locations.clear()
+  await db.clients.clear()
+  await db.employees.clear()
+}
 
 const reviveEmployee = (employee: BackupEmployeeV1 | BackupEmployeeV2): Employee => ({
   ...createEmployeeRecord({
@@ -66,6 +95,11 @@ const reviveWeekExport = (weekExport: BackupWeekExport): WeekExport => ({
   exportedAt: new Date(weekExport.exportedAt),
 })
 
+const reviveLeaveWeek = (leaveWeek: BackupLeaveWeek): LeaveWeek => ({
+  ...leaveWeek,
+  createdAt: leaveWeek.createdAt ? new Date(leaveWeek.createdAt) : new Date(),
+})
+
 const clearAppStorage = () => {
   for (const key of APP_STORAGE_KEYS) {
     window.localStorage.removeItem(key)
@@ -73,12 +107,13 @@ const clearAppStorage = () => {
 }
 
 export async function exportAllData() {
-  const [employees, clients, locations, timeEntries, weekExports] = await Promise.all([
+  const [employees, clients, locations, timeEntries, weekExports, leaveWeeks] = await Promise.all([
     db.employees.toArray(),
     db.clients.toArray(),
     db.locations.toArray(),
     db.timeEntries.toArray(),
     db.weekExports.toArray(),
+    db.leaveWeeks.toArray(),
   ])
 
   const localStorageState: Record<string, string> = {}
@@ -92,7 +127,7 @@ export async function exportAllData() {
   }
 
   const backup: AppBackupData = {
-    version: 2,
+    version: APP_BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     appState: {
       localStorage: localStorageState,
@@ -103,6 +138,7 @@ export async function exportAllData() {
       locations,
       timeEntries,
       weekExports,
+      leaveWeeks,
     },
   }
 
@@ -129,13 +165,7 @@ export async function downloadBackupFile() {
 }
 
 export async function clearAllAppData() {
-  await db.transaction('rw', [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports], async () => {
-    await db.weekExports.clear()
-    await db.timeEntries.clear()
-    await db.locations.clear()
-    await db.clients.clear()
-    await db.employees.clear()
-  })
+  await db.transaction('rw', ALL_TABLES(), clearAllTables)
 
   clearAppStorage()
 }
@@ -149,7 +179,7 @@ export async function importAllDataFromText(jsonText: string) {
     throw new Error('Backupbestand is geen geldige JSON.')
   }
 
-  if ((parsed.version !== 1 && parsed.version !== 2) || !parsed.data) {
+  if (!parsed || typeof parsed !== 'object' || !SUPPORTED_BACKUP_VERSIONS.includes(parsed.version) || !parsed.data) {
     throw new Error('Onbekend backupformaat.')
   }
 
@@ -158,13 +188,10 @@ export async function importAllDataFromText(jsonText: string) {
   const locations = parsed.data.locations ?? []
   const timeEntries = parsed.data.timeEntries ?? []
   const weekExports = (parsed.data.weekExports ?? []).map(reviveWeekExport)
+  const leaveWeeks = (parsed.data.leaveWeeks ?? []).map(reviveLeaveWeek)
 
-  await db.transaction('rw', [db.employees, db.clients, db.locations, db.timeEntries, db.weekExports], async () => {
-    await db.weekExports.clear()
-    await db.timeEntries.clear()
-    await db.locations.clear()
-    await db.clients.clear()
-    await db.employees.clear()
+  await db.transaction('rw', ALL_TABLES(), async () => {
+    await clearAllTables()
 
     if (employees.length > 0) {
       await db.employees.bulkPut(employees)
@@ -184,6 +211,10 @@ export async function importAllDataFromText(jsonText: string) {
 
     if (weekExports.length > 0) {
       await db.weekExports.bulkPut(weekExports)
+    }
+
+    if (leaveWeeks.length > 0) {
+      await db.leaveWeeks.bulkPut(leaveWeeks)
     }
   })
 

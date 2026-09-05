@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { exportAllData, importAllDataFromText, clearAllAppData } from './dataTransfer'
+import { APP_BACKUP_VERSION, exportAllData, importAllDataFromText, clearAllAppData } from './dataTransfer'
 import { db } from '../db/database'
 import { setupTestDb, teardownTestDb, seedTestDb } from '../../tests/helpers/dbHelpers'
 import { ACTIVE_PROFILE_STORAGE_KEY, NOTIFICATION_SETTINGS_STORAGE_KEY } from './storageKeys'
@@ -28,7 +28,7 @@ describe('dataTransfer utilities', () => {
       const result = await exportAllData()
 
       expect(result.backup).toBeDefined()
-      expect(result.backup.version).toBe(2)
+      expect(result.backup.version).toBe(APP_BACKUP_VERSION)
       expect(result.backup.exportedAt).toBeTruthy()
       expect(result.backup.data.employees.length).toBeGreaterThan(0)
       expect(result.backup.data.clients.length).toBeGreaterThan(0)
@@ -43,6 +43,20 @@ describe('dataTransfer utilities', () => {
       expect(result.backup.data.locations).toHaveLength(0)
       expect(result.backup.data.timeEntries).toHaveLength(0)
       expect(result.backup.data.weekExports).toHaveLength(0)
+      expect(result.backup.data.leaveWeeks).toHaveLength(0)
+    })
+
+    it('should export leave weeks', async () => {
+      const { employeeIds } = await seedTestDb({ timeEntries: false })
+      await db.leaveWeeks.add({ employeeId: employeeIds[0], weekStart: '2026-04-13', createdAt: new Date() })
+
+      const result = await exportAllData()
+
+      expect(result.backup.data.leaveWeeks).toHaveLength(1)
+      expect(result.backup.data.leaveWeeks[0]).toMatchObject({
+        employeeId: employeeIds[0],
+        weekStart: '2026-04-13',
+      })
     })
 
     it('should include localStorage state', async () => {
@@ -119,7 +133,7 @@ describe('dataTransfer utilities', () => {
       const json = await result.blob.text()
       const parsed = JSON.parse(json)
 
-      expect(parsed.version).toBe(2)
+      expect(parsed.version).toBe(APP_BACKUP_VERSION)
       expect(parsed.data).toBeDefined()
       expect(parsed.appState).toBeDefined()
     })
@@ -229,9 +243,59 @@ describe('dataTransfer utilities', () => {
       expect(client?.lastUsedAt).toBeNull()
     })
 
+    it('should restore leave weeks and revive createdAt', async () => {
+      const { employeeIds } = await seedTestDb({ timeEntries: false })
+      await db.leaveWeeks.add({ employeeId: employeeIds[0], weekStart: '2026-04-13', createdAt: new Date('2026-04-10T08:00:00Z') })
+
+      const { backup } = await exportAllData()
+      await clearAllAppData()
+      expect(await db.leaveWeeks.count()).toBe(0)
+
+      await importAllDataFromText(JSON.stringify(backup))
+
+      const restored = await db.leaveWeeks.toArray()
+      expect(restored).toHaveLength(1)
+      expect(restored[0].employeeId).toBe(employeeIds[0])
+      expect(restored[0].weekStart).toBe('2026-04-13')
+      expect(restored[0].createdAt).toBeInstanceOf(Date)
+      expect(restored[0].createdAt.toISOString()).toBe('2026-04-10T08:00:00.000Z')
+    })
+
+    it('should remove existing leave weeks that are not part of the imported backup', async () => {
+      // Local device already has a leave week for employee 1.
+      await db.leaveWeeks.add({ employeeId: 1, weekStart: '2026-03-02', createdAt: new Date() })
+
+      const backup = {
+        version: 2 as const,
+        exportedAt: new Date().toISOString(),
+        appState: { localStorage: {} },
+        data: {
+          employees: [{
+            id: 1,
+            name: 'Imported',
+            exportRecipient: 'VBW',
+            defaultBreakMinutes: 45,
+            defaultStartTime: '06:30',
+            sortOrder: 0,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          }],
+          clients: [],
+          locations: [],
+          timeEntries: [],
+          weekExports: [],
+        },
+      }
+
+      await importAllDataFromText(JSON.stringify(backup))
+
+      expect(await db.employees.count()).toBe(1)
+      expect(await db.leaveWeeks.count()).toBe(0)
+    })
+
     it('should handle empty backup', async () => {
       const emptyBackup = {
-        version: 2 as const,
+        version: APP_BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         appState: {
           localStorage: {},
@@ -242,6 +306,7 @@ describe('dataTransfer utilities', () => {
           locations: [],
           timeEntries: [],
           weekExports: [],
+          leaveWeeks: [],
         },
       }
 
@@ -249,6 +314,17 @@ describe('dataTransfer utilities', () => {
 
       expect(await db.employees.count()).toBe(0)
       expect(await db.clients.count()).toBe(0)
+    })
+
+    it('should reject unknown backup versions', async () => {
+      const backup = { version: 99, exportedAt: new Date().toISOString(), appState: { localStorage: {} }, data: {} }
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow('Onbekend backupformaat.')
+    })
+
+    it('should reject non-object JSON', async () => {
+      await expect(importAllDataFromText('null')).rejects.toThrow('Onbekend backupformaat.')
+      await expect(importAllDataFromText('"text"')).rejects.toThrow('Onbekend backupformaat.')
     })
 
     it('should import large dataset efficiently', async () => {
@@ -342,10 +418,12 @@ describe('dataTransfer utilities', () => {
 
   describe('clearAllAppData', () => {
     it('should clear all database tables', async () => {
-      await seedTestDb()
+      const { employeeIds } = await seedTestDb()
+      await db.leaveWeeks.add({ employeeId: employeeIds[0], weekStart: '2026-04-13', createdAt: new Date() })
 
       expect(await db.employees.count()).toBeGreaterThan(0)
       expect(await db.clients.count()).toBeGreaterThan(0)
+      expect(await db.leaveWeeks.count()).toBe(1)
 
       await clearAllAppData()
 
@@ -354,6 +432,7 @@ describe('dataTransfer utilities', () => {
       expect(await db.locations.count()).toBe(0)
       expect(await db.timeEntries.count()).toBe(0)
       expect(await db.weekExports.count()).toBe(0)
+      expect(await db.leaveWeeks.count()).toBe(0)
     })
 
     it('should clear app localStorage keys', async () => {
