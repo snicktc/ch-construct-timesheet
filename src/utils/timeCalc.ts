@@ -1,6 +1,11 @@
 import type { TimeEntry } from '../db/database'
 
 export const parseTimeToMinutes = (value: string) => {
+  // Defensive: corrupt or legacy records may lack a time string entirely.
+  if (typeof value !== 'string') {
+    return 0
+  }
+
   const [hours, minutes] = value.split(':').map(Number)
 
   if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {

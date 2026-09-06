@@ -22,6 +22,12 @@ describe('timeCalc utilities', () => {
       expect(parseTimeToMinutes('')).toBe(0)
     })
 
+    it('should return 0 instead of crashing for non-string input', () => {
+      expect(parseTimeToMinutes(undefined as unknown as string)).toBe(0)
+      expect(parseTimeToMinutes(null as unknown as string)).toBe(0)
+      expect(parseTimeToMinutes(830 as unknown as string)).toBe(0)
+    })
+
     it('should parse times even with invalid hours (no validation)', () => {
       // Note: Current implementation doesn't validate hours/minutes ranges
       // This is expected behavior - validation happens elsewhere

@@ -416,6 +416,207 @@ describe('dataTransfer utilities', () => {
     })
   })
 
+  describe('Import validation', () => {
+    const buildBackup = (data: Record<string, unknown>) => ({
+      version: APP_BACKUP_VERSION,
+      exportedAt: new Date().toISOString(),
+      appState: { localStorage: {} },
+      data: {
+        employees: [],
+        clients: [],
+        locations: [],
+        timeEntries: [],
+        weekExports: [],
+        leaveWeeks: [],
+        ...data,
+      },
+    })
+
+    const validEmployee = {
+      id: 1,
+      name: 'Test',
+      exportRecipient: 'Company',
+      defaultBreakMinutes: 45,
+      defaultStartTime: '06:30',
+      sortOrder: 0,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    }
+
+    const validClient = { id: 1, name: 'Client', defaultLocation: 'Site', lastUsedAt: null }
+
+    const validEntry = {
+      id: 1,
+      employeeId: 1,
+      date: '2026-04-14',
+      sortOrder: 0,
+      clientId: 1,
+      clientName: 'Client',
+      location: 'Site',
+      startTime: '08:00',
+      endTime: '17:00',
+      breakMinutes: 45,
+      travelCreditMinutes: 0,
+      isDriver: 'Ja',
+      notes: '',
+    }
+
+    it('should reject a time entry without startTime with a clear message', async () => {
+      const { startTime: _omitted, ...entryWithoutStart } = validEntry
+      void _omitted
+
+      const backup = buildBackup({
+        employees: [validEmployee],
+        clients: [validClient],
+        timeEntries: [entryWithoutStart],
+      })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        'Backupbestand is ongeldig: timeEntries[0] mist veld "startTime".',
+      )
+    })
+
+    it('should reject a time entry with a mistyped clientId', async () => {
+      const backup = buildBackup({
+        employees: [validEmployee],
+        clients: [validClient],
+        timeEntries: [validEntry, { ...validEntry, id: 2, clientId: 'abc' }],
+      })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        /timeEntries\[1\] heeft ongeldig veld "clientId"/,
+      )
+    })
+
+    it('should reject a malformed time value', async () => {
+      const backup = buildBackup({
+        employees: [validEmployee],
+        clients: [validClient],
+        timeEntries: [{ ...validEntry, endTime: 'later' }],
+      })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        /timeEntries\[0\] heeft ongeldig veld "endTime"/,
+      )
+    })
+
+    it('should reject a table that is not an array', async () => {
+      const backup = buildBackup({ timeEntries: 'oops' })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        'Backupbestand is ongeldig: "timeEntries" is geen lijst.',
+      )
+    })
+
+    it('should reject an employee without a name', async () => {
+      const { name: _omitted, ...employeeWithoutName } = validEmployee
+      void _omitted
+
+      const backup = buildBackup({ employees: [employeeWithoutName] })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        'Backupbestand is ongeldig: employees[0] mist veld "name".',
+      )
+    })
+
+    it('should reject a leave week without employeeId', async () => {
+      const backup = buildBackup({
+        employees: [validEmployee],
+        leaveWeeks: [{ weekStart: '2026-04-13', createdAt: new Date().toISOString() }],
+      })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow(
+        'Backupbestand is ongeldig: leaveWeeks[0] mist veld "employeeId".',
+      )
+    })
+
+    it('should leave existing data untouched when validation fails', async () => {
+      const { employeeIds } = await seedTestDb()
+      await db.leaveWeeks.add({ employeeId: employeeIds[0], weekStart: '2026-04-13', createdAt: new Date() })
+      window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(employeeIds[0]))
+
+      const employeeCount = await db.employees.count()
+      const entryCount = await db.timeEntries.count()
+
+      const backup = buildBackup({
+        employees: [validEmployee],
+        clients: [validClient],
+        timeEntries: [{ ...validEntry, startTime: undefined }],
+      })
+
+      await expect(importAllDataFromText(JSON.stringify(backup))).rejects.toThrow('Backupbestand is ongeldig')
+
+      expect(await db.employees.count()).toBe(employeeCount)
+      expect(await db.timeEntries.count()).toBe(entryCount)
+      expect(await db.leaveWeeks.count()).toBe(1)
+      expect(window.localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY)).toBe(String(employeeIds[0]))
+    })
+
+    it('should normalize imported records like regular writes', async () => {
+      const backup = buildBackup({
+        employees: [{ ...validEmployee, name: '  Padded  ' }],
+        clients: [{ ...validClient, name: ' Client ', defaultLocation: ' Site ' }],
+        timeEntries: [
+          {
+            ...validEntry,
+            isDriver: 'Ochtend',
+            breakMinutes: -10,
+            notes: undefined,
+            travelCreditMinutes: undefined,
+            sortOrder: undefined,
+          },
+        ],
+      })
+
+      await importAllDataFromText(JSON.stringify(backup))
+
+      const employee = await db.employees.get(1)
+      expect(employee?.name).toBe('Padded')
+
+      const client = await db.clients.get(1)
+      expect(client?.name).toBe('Client')
+      expect(client?.defaultLocation).toBe('Site')
+
+      const entry = await db.timeEntries.get(1)
+      expect(entry?.isDriver).toBe('Ja')
+      expect(entry?.breakMinutes).toBe(0)
+      expect(entry?.notes).toBe('')
+      expect(entry?.travelCreditMinutes).toBe(0)
+      expect(entry?.sortOrder).toBe(0)
+    })
+
+    it('should default missing createdAt on employees instead of storing an invalid date', async () => {
+      const { createdAt: _omitted, ...employeeWithoutCreatedAt } = validEmployee
+      void _omitted
+
+      await importAllDataFromText(JSON.stringify(buildBackup({ employees: [employeeWithoutCreatedAt] })))
+
+      const employee = await db.employees.get(1)
+      expect(employee?.createdAt).toBeInstanceOf(Date)
+      expect(Number.isNaN(employee!.createdAt.getTime())).toBe(false)
+    })
+
+    it('should preserve explicit ids so relationships stay intact', async () => {
+      const backup = buildBackup({
+        employees: [{ ...validEmployee, id: 7 }],
+        clients: [{ ...validClient, id: 12 }],
+        locations: [{ id: 3, name: 'Site' }],
+        timeEntries: [{ ...validEntry, id: 40, employeeId: 7, clientId: 12 }],
+        weekExports: [{ id: 5, employeeId: 7, weekStart: '2026-04-13', weekEnd: '2026-04-17', exportedAt: new Date().toISOString(), format: 'pdf' }],
+        leaveWeeks: [{ id: 9, employeeId: 7, weekStart: '2026-04-20', createdAt: new Date().toISOString() }],
+      })
+
+      await importAllDataFromText(JSON.stringify(backup))
+
+      expect(await db.employees.get(7)).toBeTruthy()
+      expect(await db.clients.get(12)).toBeTruthy()
+      expect(await db.locations.get(3)).toBeTruthy()
+      expect((await db.timeEntries.get(40))?.clientId).toBe(12)
+      expect((await db.weekExports.get(5))?.exportedAt).toBeInstanceOf(Date)
+      expect((await db.leaveWeeks.get(9))?.employeeId).toBe(7)
+    })
+  })
+
   describe('clearAllAppData', () => {
     it('should clear all database tables', async () => {
       const { employeeIds } = await seedTestDb()
