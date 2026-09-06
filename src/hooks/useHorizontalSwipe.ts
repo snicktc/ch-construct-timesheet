@@ -6,27 +6,39 @@ type UseHorizontalSwipeOptions = {
   threshold?: number
 }
 
+type SwipeStart = {
+  x: number
+  y: number
+}
+
 export function useHorizontalSwipe({
   onSwipeLeft,
   onSwipeRight,
   threshold = 48,
 }: UseHorizontalSwipeOptions) {
-  const startXRef = useRef<number | null>(null)
+  const startRef = useRef<SwipeStart | null>(null)
 
   return useMemo(
     () => ({
       onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
-        startXRef.current = event.clientX
+        startRef.current = { x: event.clientX, y: event.clientY }
       },
       onPointerUp: (event: React.PointerEvent<HTMLElement>) => {
-        if (startXRef.current === null) {
+        if (startRef.current === null) {
           return
         }
 
-        const deltaX = event.clientX - startXRef.current
-        startXRef.current = null
+        const deltaX = event.clientX - startRef.current.x
+        const deltaY = event.clientY - startRef.current.y
+        startRef.current = null
 
         if (Math.abs(deltaX) < threshold) {
+          return
+        }
+
+        // Ignore diagonal or mostly vertical gestures (scrolling) so they do
+        // not accidentally navigate.
+        if (Math.abs(deltaY) >= Math.abs(deltaX)) {
           return
         }
 
@@ -38,7 +50,7 @@ export function useHorizontalSwipe({
         onSwipeRight()
       },
       onPointerCancel: () => {
-        startXRef.current = null
+        startRef.current = null
       },
     }),
     [onSwipeLeft, onSwipeRight, threshold],

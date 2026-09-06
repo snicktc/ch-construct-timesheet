@@ -12,7 +12,11 @@ function SheetComponent({ title, open, onClose, children }: SheetProps) {
     onClose()
   }, [onClose])
 
-  const handleStopPropagation = useCallback((event: React.MouseEvent) => {
+  // Stop clicks (backdrop close) and pointer events (page-level swipe
+  // navigation) from bubbling out of the dialog. Otherwise a horizontal drag
+  // inside the form, e.g. selecting text, would switch the day and discard the
+  // user's input.
+  const handleStopPropagation = useCallback((event: React.SyntheticEvent) => {
     event.stopPropagation()
   }, [])
   const sheetRef = useRef<HTMLElement | null>(null)
@@ -45,6 +49,9 @@ function SheetComponent({ title, open, onClose, children }: SheetProps) {
         aria-modal="true"
         aria-label={title}
         onClick={handleStopPropagation}
+        onPointerDown={handleStopPropagation}
+        onPointerUp={handleStopPropagation}
+        onPointerCancel={handleStopPropagation}
       >
         <div className="sheet-handle" aria-hidden="true" />
         {children}
