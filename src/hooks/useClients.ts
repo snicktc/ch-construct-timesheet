@@ -5,9 +5,9 @@ import {
   type Client,
   type NewClientInput,
   createClientRecord,
-  createLocationRecord,
   db,
 } from '../db/database'
+import { ensureLocationExists } from '../db/locations'
 
 type ClientsState = {
   clients: Client[]
@@ -25,20 +25,6 @@ const sortClients = (clients: Client[]) =>
 
     return left.name.localeCompare(right.name, 'nl-BE')
   })
-
-const syncLocationName = async (locationName: string) => {
-  const trimmedLocationName = locationName.trim()
-
-  if (!trimmedLocationName) {
-    return
-  }
-
-  const existingLocation = await db.locations.where('name').equals(trimmedLocationName).first()
-
-  if (!existingLocation) {
-    await db.locations.add(createLocationRecord({ name: trimmedLocationName }))
-  }
-}
 
 export function useClients() {
   const [{ clients, loading }, setState] = useState<ClientsState>({
@@ -68,7 +54,7 @@ export function useClients() {
 
   const createClient = async (input: NewClientInput) => {
     return db.transaction('rw', db.clients, db.locations, async () => {
-      await syncLocationName(input.defaultLocation)
+      await ensureLocationExists(input.defaultLocation)
       return db.clients.add(createClientRecord(input))
     })
   }
@@ -76,7 +62,7 @@ export function useClients() {
   const updateClient = async (id: number, changes: Partial<Client>) => {
     await db.transaction('rw', db.clients, db.locations, async () => {
       if (changes.defaultLocation !== undefined) {
-        await syncLocationName(changes.defaultLocation)
+        await ensureLocationExists(changes.defaultLocation)
       }
 
       await db.clients.update(id, changes)

@@ -12,8 +12,21 @@ import { useProfiles } from './hooks/useProfiles'
 import { runNotificationChecks } from './utils/notifications'
 
 function App() {
-  const { profiles, activeProfiles, loading, createProfile } = useProfiles()
-  const { activeEmployee, activeEmployeeId, setActiveEmployeeId } = useActiveProfile()
+  const {
+    profiles,
+    activeProfiles,
+    loading: profilesLoading,
+    createProfile,
+    updateProfile,
+    setProfileActiveState,
+    deleteProfile,
+  } = useProfiles()
+  const {
+    activeEmployee,
+    activeEmployeeId,
+    loading: activeProfileLoading,
+    setActiveEmployeeId,
+  } = useActiveProfile()
   const [activeTab, setActiveTab] = useState<TabId>('today')
   const [name, setName] = useState('')
   const [exportRecipient, setExportRecipient] = useState('')
@@ -70,6 +83,10 @@ function App() {
     }
   }
 
+  // Wait for both the profile list and the stored active profile to resolve
+  // before deciding which screen to show; otherwise the "Profiel herstellen"
+  // panel briefly flashes at startup while the active employee is still loading.
+  const loading = profilesLoading || activeProfileLoading
   const showWelcome = !loading && profiles.length === 0
   const showMissingActiveProfile = !loading && profiles.length > 0 && (!activeEmployee || !activeEmployeeId)
 
@@ -200,6 +217,12 @@ function App() {
                 activeEmployeeId={activeEmployeeId ?? profiles[0]?.id ?? 0}
                 activeProfiles={activeProfiles}
                 onSelectEmployee={setActiveEmployeeId}
+                profiles={profiles}
+                loading={profilesLoading}
+                createProfile={createProfile}
+                updateProfile={updateProfile}
+                setProfileActiveState={setProfileActiveState}
+                deleteProfile={deleteProfile}
               />
             )}
 

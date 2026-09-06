@@ -196,6 +196,69 @@ describe('WeekPage', () => {
     expect(sharedFiles[0]?.name).toBe('updated.pdf')
   })
 
+  it('records a week export after a successful share, but not after a cancelled one', async () => {
+    // navigator.share is a vi.fn() from tests/setup.ts; spyOn reuses it, so
+    // clear calls made by earlier tests in this file.
+    const shareSpy = vi.spyOn(navigator, 'share').mockResolvedValue(undefined)
+    shareSpy.mockClear()
+    vi.spyOn(navigator, 'canShare').mockReturnValue(true)
+    const user = userEvent.setup()
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Deel via...' }))
+    await waitFor(() => expect(shareSpy).toHaveBeenCalledTimes(1))
+
+    await waitFor(async () => {
+      const exports = await db.weekExports.where('employeeId').equals(activeEmployeeId).toArray()
+      expect(exports).toHaveLength(1)
+      expect(exports[0]).toMatchObject({ weekStart: '2026-04-06', weekEnd: '2026-04-19', format: 'pdf' })
+    })
+
+    // A cancelled share sheet must not be counted as an export.
+    const abortError = new Error('cancelled')
+    abortError.name = 'AbortError'
+    shareSpy.mockRejectedValueOnce(abortError)
+
+    await user.click(screen.getByRole('button', { name: 'Deel via...' }))
+    await waitFor(() => expect(shareSpy).toHaveBeenCalledTimes(2))
+
+    // Give any (incorrect) write a chance to land before asserting.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(await db.weekExports.where('employeeId').equals(activeEmployeeId).count()).toBe(1)
+    expect(screen.queryByText(/mislukt|niet ondersteund/i)).not.toBeInTheDocument()
+  })
+
+  it('records a week export when downloading the PDF', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:pdf')
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    const user = userEvent.setup()
+
+    render(
+      <WeekPage
+        activeEmployee={activeEmployee}
+        activeEmployeeId={activeEmployeeId}
+        activeProfiles={[activeEmployee]}
+        onSelectEmployee={vi.fn()}
+        onOpenDay={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Exporteer naar PDF' }))
+
+    expect(await screen.findByText('PDF geëxporteerd.')).toBeVisible()
+    expect(await db.weekExports.where('employeeId').equals(activeEmployeeId).count()).toBe(1)
+  })
+
   it('marks a week as leave and shows the leave note', async () => {
     const user = userEvent.setup()
 

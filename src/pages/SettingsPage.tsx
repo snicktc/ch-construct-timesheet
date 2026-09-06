@@ -5,7 +5,7 @@ import { ProfileSwitcher } from '../components/ProfileSwitcher'
 import { Sheet } from '../components/Sheet'
 import { Toast } from '../components/Toast'
 import type { Employee } from '../db/database'
-import { useProfiles } from '../hooks/useProfiles'
+import type { useProfiles } from '../hooks/useProfiles'
 import { installAppUpdate } from '../utils/appUpdate'
 import {
   clearAllAppData,
@@ -22,7 +22,14 @@ import {
   type NotificationSettings,
 } from '../utils/notifications'
 
-type SettingsPageProps = {
+// Profile data and mutations come from the single useProfiles() instance in
+// App so that the employees table is observed by one liveQuery only.
+type ProfilesApi = Pick<
+  ReturnType<typeof useProfiles>,
+  'profiles' | 'loading' | 'createProfile' | 'updateProfile' | 'setProfileActiveState' | 'deleteProfile'
+>
+
+type SettingsPageProps = ProfilesApi & {
   activeEmployeeId: number
   activeProfiles: Employee[]
   onSelectEmployee: (employeeId: number) => void
@@ -50,15 +57,13 @@ export function SettingsPage({
   activeEmployeeId,
   activeProfiles,
   onSelectEmployee,
+  profiles,
+  loading,
+  createProfile,
+  updateProfile,
+  setProfileActiveState,
+  deleteProfile,
 }: SettingsPageProps) {
-  const {
-    profiles,
-    loading,
-    createProfile,
-    updateProfile,
-    setProfileActiveState,
-    deleteProfile,
-  } = useProfiles()
   const [editingProfileId, setEditingProfileId] = useState<number | null>(null)
   const [draft, setDraft] = useState<ProfileDraft>(EMPTY_DRAFT)
   const [errorMessage, setErrorMessage] = useState('')

@@ -9,6 +9,8 @@ import {
   createTimeEntryRecord,
   db,
 } from '../db/database'
+import { ensureLocationExists } from '../db/locations'
+import { sortEntries } from '../utils/entryGrouping'
 import { calculateDayTotalMinutes } from '../utils/timeCalc'
 
 type TimeEntriesState = {
@@ -19,22 +21,6 @@ type TimeEntriesState = {
 
 export type SaveTimeEntryInput = Omit<NewTimeEntryInput, 'sortOrder' | 'clientName' | 'breakMinutes'> &
   Partial<Pick<TimeEntry, 'sortOrder' | 'clientName' | 'breakMinutes'>>
-
-const sortEntries = (entries: TimeEntry[]) => [...entries].sort((left, right) => left.sortOrder - right.sortOrder)
-
-const ensureLocationExists = async (locationName: string) => {
-  const trimmedLocationName = locationName.trim()
-
-  if (!trimmedLocationName) {
-    return
-  }
-
-  const existingLocation = await db.locations.where('name').equals(trimmedLocationName).first()
-
-  if (!existingLocation) {
-    await db.locations.add(createLocationRecord({ name: trimmedLocationName }))
-  }
-}
 
 const getEntriesForEmployeeDate = async (employeeId: number, date: string) => {
   const entries = await db.timeEntries.where('[employeeId+date]').equals([employeeId, date]).toArray()
@@ -99,8 +85,6 @@ export function useTimeEntry(employeeId: number | null, date: string) {
   const visibleLoading = employeeId ? loading : false
 
   const createEntry = async (input: SaveTimeEntryInput) => {
-    const currentDayCount = entries.length
-
     const { entryId, clientId } = await db.transaction('rw', db.timeEntries, db.clients, db.locations, async () => {
       const client = await db.clients.get(input.clientId)
 
@@ -108,12 +92,23 @@ export function useTimeEntry(employeeId: number | null, date: string) {
         throw new Error('Klant niet gevonden.')
       }
 
+      // Derive sortOrder from the database inside the transaction rather than
+      // from the (possibly stale) liveQuery state, so that two saves fired in
+      // quick succession never end up with the same sortOrder.
+      const existingDayEntries = await db.timeEntries
+        .where('[employeeId+date]')
+        .equals([input.employeeId, input.date])
+        .toArray()
+      const isFirstEntryOfDay = existingDayEntries.length === 0
+      const nextSortOrder = isFirstEntryOfDay
+        ? 0
+        : Math.max(...existingDayEntries.map((entry) => entry.sortOrder)) + 1
+
       const record = createTimeEntryRecord({
         ...input,
-        sortOrder: input.sortOrder ?? currentDayCount,
+        sortOrder: input.sortOrder ?? nextSortOrder,
         clientName: input.clientName ?? client.name,
-        breakMinutes:
-          input.breakMinutes ?? (currentDayCount === 0 ? DEFAULT_BREAK_MINUTES : 0),
+        breakMinutes: input.breakMinutes ?? (isFirstEntryOfDay ? DEFAULT_BREAK_MINUTES : 0),
       })
 
       await ensureLocationExists(record.location)

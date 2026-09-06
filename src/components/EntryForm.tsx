@@ -12,6 +12,7 @@ import {
 } from '../db/database'
 import { db } from '../db/database'
 import type { SaveTimeEntryInput } from '../hooks/useTimeEntry'
+import { parseTimeToMinutes } from '../utils/timeCalc'
 import { ConfirmDialog } from './ConfirmDialog'
 import { ClientSelect } from './ClientSelect'
 
@@ -82,6 +83,7 @@ export function EntryForm({
   const [showNewClient, setShowNewClient] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isCreatingClient, setIsCreatingClient] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [historicalStartTimes, setHistoricalStartTimes] = useState<string[]>([])
   const [historicalEndTimes, setHistoricalEndTimes] = useState<string[]>([])
@@ -177,17 +179,25 @@ export function EntryForm({
       return
     }
 
-    const nextId = await onCreateClient({
-      name: newClientName,
-      defaultLocation: newClientLocation,
-    })
+    try {
+      setIsCreatingClient(true)
+      setErrorMessage('')
 
-    setClientId(nextId)
-    setLocation(newClientLocation)
-    setShowNewClient(false)
-    setNewClientName('')
-    setNewClientLocation('')
-    setErrorMessage('')
+      const nextId = await onCreateClient({
+        name: newClientName,
+        defaultLocation: newClientLocation,
+      })
+
+      setClientId(nextId)
+      setLocation(newClientLocation)
+      setShowNewClient(false)
+      setNewClientName('')
+      setNewClientLocation('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Klant opslaan mislukt.')
+    } finally {
+      setIsCreatingClient(false)
+    }
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -203,8 +213,18 @@ export function EntryForm({
       return
     }
 
+    // Shifts are restricted to a single calendar day; overnight work is not supported.
     if (!startTime || !endTime || endTime <= startTime) {
       setErrorMessage('Eindtijd moet later zijn dan starttijd.')
+      return
+    }
+
+    // Without this check the entry would silently be saved as 00:00 worked
+    // time (calculateEntryMinutes clamps negative results to zero).
+    const grossMinutes = parseTimeToMinutes(endTime) - parseTimeToMinutes(startTime)
+
+    if (breakMinutes + travelCreditMinutes >= grossMinutes) {
+      setErrorMessage('Pauze en rit-credit zijn samen groter dan of gelijk aan de gewerkte tijd.')
       return
     }
 
@@ -332,8 +352,13 @@ export function EntryForm({
               <input value={newClientLocation} onChange={(event) => setNewClientLocation(event.target.value)} />
             </div>
             <div className="button-row">
-              <button type="button" className="secondary-button" onClick={() => void handleCreateClient()}>
-                Klant opslaan
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void handleCreateClient()}
+                disabled={isCreatingClient}
+              >
+                {isCreatingClient ? 'Klant opslaan...' : 'Klant opslaan'}
               </button>
               <button type="button" className="secondary-button" onClick={() => setShowNewClient(false)}>
                 Sluiten

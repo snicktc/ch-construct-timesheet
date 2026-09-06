@@ -103,6 +103,61 @@ describe('useActiveProfile', () => {
     expect(result.current.activeEmployeeId).toBe(employeeId)
   })
 
+  it('reports loading until the stored active employee has been read', async () => {
+    const employeeId = requireNumericId(await db.employees.add(
+      createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
+    ))
+    window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(employeeId))
+
+    const { result } = renderHook(() => useActiveProfile())
+
+    // Synchronously after mount: id known, record not yet loaded.
+    expect(result.current.activeEmployeeId).toBe(employeeId)
+    expect(result.current.activeEmployee).toBeNull()
+    expect(result.current.loading).toBe(true)
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+    expect(result.current.activeEmployee?.name).toBe('Milan')
+  })
+
+  it('is not loading when no active employee id is stored', () => {
+    const { result } = renderHook(() => useActiveProfile())
+
+    expect(result.current.activeEmployeeId).toBeNull()
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('stops loading when the stored id points to a missing record', async () => {
+    window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, '99')
+
+    const { result } = renderHook(() => useActiveProfile())
+    expect(result.current.loading).toBe(true)
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+    expect(result.current.activeEmployee).toBeNull()
+  })
+
+  it('does not get stuck loading when the same id is selected again', async () => {
+    const employeeId = requireNumericId(await db.employees.add(
+      createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),
+    ))
+    window.localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, String(employeeId))
+
+    const { result } = renderHook(() => useActiveProfile())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    await act(async () => {
+      result.current.setActiveEmployeeId(employeeId)
+    })
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.activeEmployee?.name).toBe('Milan')
+  })
+
   it('persists a newly selected active employee id', async () => {
     const employeeId = requireNumericId(await db.employees.add(
       createEmployeeRecord({ name: 'Milan', exportRecipient: 'CH Construct' }),

@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type Employee } from '../db/database'
 import { SettingsPage } from './SettingsPage'
 
-const mockUseProfiles = vi.fn()
 const mockInstallAppUpdate = vi.fn()
 const mockDownloadBackupFile = vi.fn()
 const mockImportAllDataFromText = vi.fn()
@@ -13,10 +12,6 @@ const mockClearAllAppData = vi.fn()
 const mockRequestNotificationPermission = vi.fn()
 const mockSaveNotificationSettings = vi.fn()
 const mockShowAppNotification = vi.fn()
-
-vi.mock('../hooks/useProfiles', () => ({
-  useProfiles: () => mockUseProfiles(),
-}))
 
 vi.mock('../utils/appUpdate', () => ({
   installAppUpdate: (...args: unknown[]) => mockInstallAppUpdate(...args),
@@ -55,16 +50,22 @@ const profile: Employee = {
   createdAt: new Date('2026-04-01T00:00:00.000Z'),
 }
 
+// Profile data and mutations are supplied by App (single useProfiles instance).
+const defaultProps = (overrides: Partial<React.ComponentProps<typeof SettingsPage>> = {}) => ({
+  activeEmployeeId: 1,
+  activeProfiles: [profile],
+  onSelectEmployee: vi.fn(),
+  profiles: [profile],
+  loading: false,
+  createProfile: vi.fn().mockResolvedValue(2),
+  updateProfile: vi.fn().mockResolvedValue(undefined),
+  setProfileActiveState: vi.fn().mockResolvedValue(undefined),
+  deleteProfile: vi.fn().mockResolvedValue(undefined),
+  ...overrides,
+})
+
 describe('SettingsPage', () => {
   beforeEach(() => {
-    mockUseProfiles.mockReturnValue({
-      profiles: [profile],
-      loading: false,
-      createProfile: vi.fn().mockResolvedValue(2),
-      updateProfile: vi.fn().mockResolvedValue(undefined),
-      setProfileActiveState: vi.fn().mockResolvedValue(undefined),
-      deleteProfile: vi.fn().mockResolvedValue(undefined),
-    })
     mockDownloadBackupFile.mockReset()
     mockImportAllDataFromText.mockReset()
     mockClearAllAppData.mockReset()
@@ -81,18 +82,8 @@ describe('SettingsPage', () => {
   it('creates a new profile from the editor sheet', async () => {
     const user = userEvent.setup()
     const createProfile = vi.fn().mockResolvedValue(2)
-    mockUseProfiles.mockReturnValue({
-      profiles: [profile],
-      loading: false,
-      createProfile,
-      updateProfile: vi.fn(),
-      setProfileActiveState: vi.fn(),
-      deleteProfile: vi.fn(),
-    })
 
-    render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
-    )
+    render(<SettingsPage {...defaultProps({ createProfile })} />)
 
     await user.click(screen.getByRole('button', { name: '+ Nieuw' }))
     const dialog = await screen.findByRole('dialog', { name: 'Nieuw profiel' })
@@ -114,18 +105,8 @@ describe('SettingsPage', () => {
   it('updates an existing profile from CH Construct to VBW', async () => {
     const user = userEvent.setup()
     const updateProfile = vi.fn().mockResolvedValue(undefined)
-    mockUseProfiles.mockReturnValue({
-      profiles: [profile],
-      loading: false,
-      createProfile: vi.fn(),
-      updateProfile,
-      setProfileActiveState: vi.fn(),
-      deleteProfile: vi.fn(),
-    })
 
-    render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
-    )
+    render(<SettingsPage {...defaultProps({ updateProfile })} />)
 
     await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
     const dialog = await screen.findByRole('dialog', { name: 'Profiel bewerken' })
@@ -149,7 +130,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup()
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
@@ -172,7 +153,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup()
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     await user.click(screen.getByRole('button', { name: '✎ Bewerk' }))
@@ -189,7 +170,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup()
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Vraag notificaties toe' }))
@@ -207,7 +188,7 @@ describe('SettingsPage', () => {
     mockImportAllDataFromText.mockResolvedValue(undefined)
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     const file = new File(['{"version":1,"data":{}}'], 'backup.json', { type: 'application/json' })
@@ -228,7 +209,7 @@ describe('SettingsPage', () => {
     const user = userEvent.setup()
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     expect(screen.getByText('Versie 1.0.0-test')).toBeVisible()
@@ -253,7 +234,7 @@ describe('SettingsPage', () => {
     )
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Update' }))
@@ -275,7 +256,7 @@ describe('SettingsPage', () => {
     mockInstallAppUpdate.mockRejectedValue(new Error('Update mislukt.'))
 
     render(
-      <SettingsPage activeEmployeeId={1} activeProfiles={[profile]} onSelectEmployee={vi.fn()} />,
+      <SettingsPage {...defaultProps()} />,
     )
 
     await user.click(screen.getByRole('button', { name: 'Update' }))

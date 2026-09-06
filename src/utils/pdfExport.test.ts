@@ -396,6 +396,41 @@ describe('generateTimesheetPdf', () => {
     expect(restoreCall?.args[0]).toBe(2)
   })
 
+  it('chains the second week table below the first and numbers every page', async () => {
+    const result = await generateTimesheetPdf({
+      employee: {
+        id: 1,
+        name: 'Milan Test',
+        exportRecipient: 'CH Construct',
+        defaultBreakMinutes: 45,
+        defaultStartTime: '06:30',
+        sortOrder: 0,
+        isActive: true,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      },
+      fortnightStart: new Date('2026-04-06T00:00:00.000Z'),
+      entries: [],
+    })
+
+    // The autotable mock reports finalY = startY + 20 for every table.
+    const [weekOne, weekTwo, summary] = pdfMockState.autoTableMock.mock.calls.map(
+      (call) => call[1] as { startY: number; head: string[][] },
+    )
+    expect(weekOne.startY).toBe(46)
+    expect(weekOne.head[0][0]).toBe('Week\n15')
+    expect(weekTwo.startY).toBe(46 + 20 + 7)
+    expect(weekTwo.head[0][0]).toBe('Week\n16')
+    expect(summary.startY).toBe(46 + 20 + 7 + 20 + 7)
+
+    // getNumberOfPages() is mocked to 2: both pages receive a footer.
+    const doc = pdfMockState.jsPdfInstances[0]
+    expect(doc?.text).toHaveBeenCalledWith('pagina 1/2', 196, 294, { align: 'right' })
+    expect(doc?.text).toHaveBeenCalledWith('pagina 2/2', 196, 294, { align: 'right' })
+    expect(doc?.setPage).toHaveBeenCalledWith(1)
+    expect(doc?.setPage).toHaveBeenCalledWith(2)
+    expect(result.pdfFile.name).toBe('Werkuren_Milan_Test_Week_15-16.pdf')
+  })
+
   it('uses compact table settings that keep the summary together and subtotal readable', async () => {
     await generateTimesheetPdf({
       employee: {

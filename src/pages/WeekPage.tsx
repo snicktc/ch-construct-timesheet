@@ -6,6 +6,7 @@ import { Toast } from '../components/Toast'
 import { createWeekExportRecord, db, type Employee, type TimeEntry } from '../db/database'
 import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe'
 import { useLeaveWeeks } from '../hooks/useLeaveWeeks'
+import { groupEntriesByDate } from '../utils/entryGrouping'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from '../utils/timeCalc'
 import {
   addDays,
@@ -40,13 +41,14 @@ type ClientSummary = {
 // any change to entries, leave weeks, employee or period invalidates it.
 type PreparedPdf = {
   file: File
+  /** Reported period of the PDF (leave weeks excluded), used for the export history. */
+  weekStart: string
+  weekEnd: string
   employee: Employee
   entries: TimeEntry[]
   leaveWeekStarts: ReadonlySet<string>
   periodKey: string
 }
-
-const sortEntries = (entries: TimeEntry[]) => [...entries].sort((left, right) => left.sortOrder - right.sortOrder)
 
 export function WeekPage({
   activeEmployee,
@@ -129,21 +131,7 @@ export function WeekPage({
     return () => subscription.unsubscribe()
   }, [activeEmployeeId, fortnightEndKey, fortnightStartKey])
 
-  const entriesByDate = useMemo(() => {
-    const grouped = new Map<string, TimeEntry[]>()
-
-    for (const entry of entries) {
-      const current = grouped.get(entry.date) ?? []
-      current.push(entry)
-      grouped.set(entry.date, current)
-    }
-
-    for (const [date, dateEntries] of grouped) {
-      grouped.set(date, sortEntries(dateEntries))
-    }
-
-    return grouped
-  }, [entries])
+  const entriesByDate = useMemo(() => groupEntriesByDate(entries), [entries])
 
   const weekOneDates = fortnightDates.slice(0, 7)
   const weekTwoDates = fortnightDates.slice(7, 14)
@@ -229,12 +217,28 @@ export function WeekPage({
 
     return {
       file: result.pdfFile,
+      weekStart: result.weekStart,
+      weekEnd: result.weekEnd,
       employee: activeEmployee,
       entries,
       leaveWeekStarts,
       periodKey,
     }
   }, [activeEmployee, entries, fortnightDates, leaveWeekStarts, periodKey])
+
+  // Both downloading and sharing count as an export of the period.
+  const recordWeekExport = useCallback(
+    async (period: Pick<PreparedPdf, 'weekStart' | 'weekEnd'>) => {
+      await db.weekExports.add(
+        createWeekExportRecord({
+          employeeId: activeEmployeeId,
+          weekStart: period.weekStart,
+          weekEnd: period.weekEnd,
+        }),
+      )
+    },
+    [activeEmployeeId],
+  )
 
   // Pre-generate the PDF as soon as the fortnight is complete so that sharing
   // is instant. Re-runs whenever any input changes so the cache never goes stale.
@@ -373,37 +377,18 @@ export function WeekPage({
       setIsExporting(true)
       setExportError('')
       setExportSuccess('')
-      const { generateTimesheetPdf } = await import('../utils/pdfExport')
+      const prepared = isPreparedPdfCurrent && preparedPdf ? preparedPdf : await buildPreparedPdf()
 
-      const result = await generateTimesheetPdf({
-        employee: activeEmployee,
-        fortnightStart: fortnightDates[0],
-        entries,
-        leaveWeekStarts,
-      })
-
-      const downloadUrl = URL.createObjectURL(result.pdfBlob)
+      const downloadUrl = URL.createObjectURL(prepared.file)
       const link = document.createElement('a')
       link.href = downloadUrl
-      link.download = result.fileName
+      link.download = prepared.file.name
       link.click()
       URL.revokeObjectURL(downloadUrl)
 
-      await db.weekExports.add(
-        createWeekExportRecord({
-          employeeId: activeEmployeeId,
-          weekStart: result.weekStart,
-          weekEnd: result.weekEnd,
-        }),
-      )
+      await recordWeekExport(prepared)
 
-      setPreparedPdf({
-        file: result.pdfFile,
-        employee: activeEmployee,
-        entries,
-        leaveWeekStarts,
-        periodKey,
-      })
+      setPreparedPdf(prepared)
       setExportSuccess('PDF geëxporteerd.')
     } catch (error) {
       setExportError(error instanceof Error ? error.message : 'PDF export mislukt.')
@@ -416,25 +401,28 @@ export function WeekPage({
     try {
       setExportError('')
 
-      let file: File
+      let prepared: PreparedPdf
 
       if (isPreparedPdfCurrent && preparedPdf) {
-        file = preparedPdf.file
+        prepared = preparedPdf
       } else {
-        const prepared = await buildPreparedPdf()
+        prepared = await buildPreparedPdf()
         setPreparedPdf(prepared)
-        file = prepared.file
       }
 
-      if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+      if (!navigator.share || !navigator.canShare?.({ files: [prepared.file] })) {
         throw new Error('Delen wordt niet ondersteund op dit toestel.')
       }
 
       await navigator.share({
         title: 'Werkurenregistratie',
         text: `Werkuren van ${activeEmployee.name}`,
-        files: [file],
+        files: [prepared.file],
       })
+
+      // Only reached when the share sheet completed; a cancelled share throws
+      // AbortError and is deliberately not recorded as an export.
+      await recordWeekExport(prepared)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         return

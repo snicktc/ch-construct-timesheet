@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 import type { Employee, TimeEntry } from '../db/database'
+import { groupEntriesByDate } from './entryGrouping'
 import { getDefaultLogoPathForRecipient } from './logoUtils'
 import { calculateDayTotalMinutes, calculateEntryMinutes, formatMinutesAsHours } from './timeCalc'
 import {
@@ -43,6 +44,8 @@ const detectImageFormat = (dataUrl: string) => {
 
 type LogoResult = { dataUrl: string; width: number; height: number }
 
+const EMPTY_LOGO: LogoResult = { dataUrl: '', width: 0, height: 0 }
+
 const loadLogoViaCanvas = (src: string): Promise<LogoResult> =>
   new Promise((resolve) => {
     const img = new Image()
@@ -57,39 +60,21 @@ const loadLogoViaCanvas = (src: string): Promise<LogoResult> =>
         const ctx = canvas.getContext('2d')
 
         if (!ctx) {
-          resolve({ dataUrl: '', width: 0, height: 0 })
+          resolve(EMPTY_LOGO)
           return
         }
 
         ctx.drawImage(img, 0, 0)
         resolve({ dataUrl: canvas.toDataURL('image/png'), width: naturalWidth, height: naturalHeight })
       } catch {
-        resolve({ dataUrl: '', width: 0, height: 0 })
+        resolve(EMPTY_LOGO)
       }
     }
-    img.onerror = () => resolve({ dataUrl: '', width: 0, height: 0 })
+    img.onerror = () => resolve(EMPTY_LOGO)
     img.src = src
   })
 
 const sanitizeFilePart = (value: string) => value.replace(/[^a-z0-9-_]+/gi, '_').replace(/^_+|_+$/g, '')
-
-const sortEntries = (entries: TimeEntry[]) => [...entries].sort((left, right) => left.sortOrder - right.sortOrder)
-
-const groupEntriesByDate = (entries: TimeEntry[]) => {
-  const grouped = new Map<string, TimeEntry[]>()
-
-  for (const entry of entries) {
-    const current = grouped.get(entry.date) ?? []
-    current.push(entry)
-    grouped.set(entry.date, current)
-  }
-
-  for (const [date, dateEntries] of grouped) {
-    grouped.set(date, sortEntries(dateEntries))
-  }
-
-  return grouped
-}
 
 const buildClientSummary = (entries: TimeEntry[]) => {
   const summary = new Map<string, ExportClientSummary>()
@@ -114,21 +99,10 @@ const addHeader = async (
   periodStart: Date,
   periodEnd: Date,
 ) => {
-  let logoDataUrl = ''
-  let logoNaturalWidth = 0
-  let logoNaturalHeight = 0
-
-  if (!logoDataUrl) {
-    const baseUrl = import.meta.env.BASE_URL
-    const logoPath = getDefaultLogoPathForRecipient(employee.exportRecipient)
-
-    if (logoPath) {
-      const result = await loadLogoViaCanvas(`${baseUrl}${logoPath}`)
-      logoDataUrl = result.dataUrl
-      logoNaturalWidth = result.width
-      logoNaturalHeight = result.height
-    }
-  }
+  const logoPath = getDefaultLogoPathForRecipient(employee.exportRecipient)
+  const { dataUrl: logoDataUrl, width: logoNaturalWidth, height: logoNaturalHeight }: LogoResult = logoPath
+    ? await loadLogoViaCanvas(`${import.meta.env.BASE_URL}${logoPath}`)
+    : EMPTY_LOGO
 
   const hasLogo = Boolean(logoDataUrl)
   let logoDrawWidth = 0

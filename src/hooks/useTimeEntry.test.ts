@@ -211,6 +211,83 @@ describe('useTimeEntry Hook', () => {
       expect(thirdEntry.breakMinutes).toBe(0)
     })
 
+    it('assigns distinct sortOrders to two saves fired before the liveQuery re-emits', async () => {
+      const { employeeIds, clientIds } = await seedTestDb({ timeEntries: false })
+      const employeeId = employeeIds[0]
+      const clientId = clientIds[0]
+      const date = '2026-04-20'
+
+      const { result } = renderHook(() => useTimeEntry(employeeId, date))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      const base = { employeeId, date, clientId, location: 'Gent' }
+
+      // Both calls read the same (empty) React state; sortOrder must come from the DB.
+      await act(async () => {
+        await Promise.all([
+          result.current.createEntry({ ...base, startTime: '06:00', endTime: '10:00' }),
+          result.current.createEntry({ ...base, startTime: '10:00', endTime: '14:00' }),
+        ])
+      })
+
+      await waitFor(() => {
+        expect(result.current.entries).toHaveLength(2)
+      })
+
+      const sortOrders = result.current.entries.map((entry) => entry.sortOrder).sort()
+      expect(sortOrders).toEqual([0, 1])
+    })
+
+    it('uses max(sortOrder)+1 so a new entry never collides after a deletion', async () => {
+      const { employeeIds, clientIds } = await seedTestDb({ timeEntries: false })
+      const employeeId = employeeIds[0]
+      const clientId = clientIds[0]
+      const date = '2026-04-20'
+
+      const { result } = renderHook(() => useTimeEntry(employeeId, date))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      const base = { employeeId, date, clientId, location: 'Gent' }
+      let firstId: number | undefined
+
+      await act(async () => {
+        firstId = await result.current.createEntry({ ...base, startTime: '06:00', endTime: '08:00' })
+        await result.current.createEntry({ ...base, startTime: '08:00', endTime: '10:00' })
+        await result.current.createEntry({ ...base, startTime: '10:00', endTime: '12:00' })
+      })
+
+      await waitFor(() => expect(result.current.entries).toHaveLength(3))
+
+      if (firstId === undefined) {
+        throw new Error('Expected createEntry to return an id')
+      }
+
+      const idToDelete = firstId
+
+      await act(async () => {
+        await result.current.deleteEntry(idToDelete)
+      })
+
+      await waitFor(() => expect(result.current.entries).toHaveLength(2))
+
+      // Remaining sortOrders are 1 and 2; entries.length would be 2 and collide.
+      await act(async () => {
+        await result.current.createEntry({ ...base, startTime: '12:00', endTime: '14:00' })
+      })
+
+      await waitFor(() => expect(result.current.entries).toHaveLength(3))
+
+      const sortOrders = result.current.entries.map((entry) => entry.sortOrder)
+      expect(new Set(sortOrders).size).toBe(3)
+      expect(Math.max(...sortOrders)).toBe(3)
+    })
+
     it('should update client lastUsedAt', async () => {
       const { employeeIds, clientIds } = await seedTestDb({ timeEntries: false })
       const employeeId = employeeIds[0]

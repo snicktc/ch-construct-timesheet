@@ -103,6 +103,10 @@ export async function migrateLegacyTimesheetData() {
     const targetRecordCount = await countTargetRecords()
     let copiedLegacyDatabase = false
 
+    // The legacy database is only copied into an empty target. When the target
+    // already holds data, the legacy database is deliberately left in place
+    // (never merged, never deleted) so no data can be lost; the migration is
+    // still marked as done below, so this check does not repeat on every start.
     if (legacyDbExists && targetRecordCount === 0) {
       const legacyDb = new LegacyTimesheetDatabase()
       
