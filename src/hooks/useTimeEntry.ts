@@ -138,10 +138,14 @@ export function useTimeEntry(employeeId: number | null, date: string) {
         throw new Error('Registratie niet gevonden.')
       }
 
+      const isClientChanging = changes.clientId !== undefined && changes.clientId !== existingEntry.clientId
       const nextClientId = changes.clientId ?? existingEntry.clientId
       const client = await db.clients.get(nextClientId)
 
-      if (!client) {
+      // Only require the client to exist when the user actually switches client.
+      // Entries that reference a client that no longer exists (e.g. from an old
+      // backup) must remain editable for the other fields.
+      if (isClientChanging && !client) {
         throw new Error('Klant niet gevonden.')
       }
 
@@ -150,13 +154,17 @@ export function useTimeEntry(employeeId: number | null, date: string) {
 
       await db.timeEntries.update(id, {
         ...changes,
-        clientName: changes.clientName ?? client.name,
+        clientName: changes.clientName ?? client?.name ?? existingEntry.clientName,
       })
 
-      return client.id!
+      return client?.id ?? null
     })
 
-    void db.clients.update(clientIdToUpdate, { lastUsedAt: new Date() })
+    if (clientIdToUpdate !== null) {
+      db.clients.update(clientIdToUpdate, { lastUsedAt: new Date() }).catch((error) => {
+        console.error('Failed to update client lastUsedAt', { clientId: clientIdToUpdate, error })
+      })
+    }
   }
 
   const deleteEntry = async (id: number) => {
@@ -195,6 +203,8 @@ export function useTimeEntry(employeeId: number | null, date: string) {
         await db.locations.bulkAdd(missingLocations.map((name) => createLocationRecord({ name })))
       }
 
+      // Dexie's update() resolves to 0 for ids that no longer exist, so entries
+      // that reference a deleted client are copied without failing.
       await Promise.all(uniqueClientIds.map((id) => db.clients.update(id, { lastUsedAt: now })))
 
       await db.timeEntries.bulkAdd(

@@ -238,8 +238,8 @@ describe('useClients Hook', () => {
   })
 
   describe('deleteClient', () => {
-    it('should delete client', async () => {
-      const { clientIds } = await seedTestDb()
+    it('should delete client without time entries', async () => {
+      const { clientIds } = await seedTestDb({ timeEntries: false })
       const clientId = clientIds[0]
 
       const { result } = renderHook(() => useClients())
@@ -262,6 +262,29 @@ describe('useClients Hook', () => {
 
       const deletedFromDb = await db.clients.get(clientId)
       expect(deletedFromDb).toBeUndefined()
+    })
+
+    it('should throw and keep client when time entries reference it', async () => {
+      const { clientIds } = await seedTestDb()
+      const clientId = clientIds[0]
+
+      const referencingEntries = await db.timeEntries.where('clientId').equals(clientId).count()
+      expect(referencingEntries).toBeGreaterThan(0)
+
+      const { result } = renderHook(() => useClients())
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      await expect(
+        act(async () => {
+          await result.current.deleteClient(clientId)
+        })
+      ).rejects.toThrow('Klant heeft registraties')
+
+      expect(await db.clients.get(clientId)).toBeTruthy()
+      expect(await db.timeEntries.where('clientId').equals(clientId).count()).toBe(referencingEntries)
     })
   })
 

@@ -84,7 +84,15 @@ export function useClients() {
   }
 
   const deleteClient = async (id: number) => {
-    await db.clients.delete(id)
+    await db.transaction('rw', db.clients, db.timeEntries, async () => {
+      const timeEntryCount = await db.timeEntries.where('clientId').equals(id).count()
+
+      if (timeEntryCount > 0) {
+        throw new Error('Klant heeft registraties en kan niet verwijderd worden.')
+      }
+
+      await db.clients.delete(id)
+    })
   }
 
   return {

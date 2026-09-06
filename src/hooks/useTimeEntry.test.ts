@@ -375,6 +375,61 @@ describe('useTimeEntry Hook', () => {
         })
       ).rejects.toThrow('Registratie niet gevonden')
     })
+
+    it('should keep entries editable when their client no longer exists', async () => {
+      const { employeeIds } = await seedTestDb({ clients: false, timeEntries: false })
+      const employeeId = employeeIds[0]
+      const date = '2026-04-20'
+
+      const entryId = (await db.timeEntries.add(
+        createMockTimeEntry({
+          employeeId,
+          date,
+          clientId: 999, // Dangling reference
+          clientName: 'Verwijderde klant',
+          endTime: '16:00',
+        }),
+      )) as number
+
+      const { result } = renderHook(() => useTimeEntry(employeeId, date))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.entries).toHaveLength(1)
+      })
+
+      await act(async () => {
+        await result.current.updateEntry(entryId, { endTime: '17:30' })
+      })
+
+      await waitFor(() => {
+        const updated = result.current.entries.find((e) => e.id === entryId)
+        expect(updated?.endTime).toBe('17:30')
+        expect(updated?.clientId).toBe(999)
+        expect(updated?.clientName).toBe('Verwijderde klant')
+      })
+    })
+
+    it('should throw when switching to a client that does not exist', async () => {
+      const { employeeIds } = await seedTestDb()
+      const employeeId = employeeIds[0]
+      const date = '2026-04-14'
+
+      const { result } = renderHook(() => useTimeEntry(employeeId, date))
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.entries.length).toBeGreaterThan(0)
+      })
+
+      const entryId = result.current.entries[0].id!
+
+      await expect(
+        act(async () => {
+          await result.current.updateEntry(entryId, { clientId: 999 })
+        })
+      ).rejects.toThrow('Klant niet gevonden')
+    })
   })
 
   describe('deleteEntry', () => {
