@@ -53,15 +53,21 @@ export function useProfiles() {
   }
 
   const deleteProfile = async (id: number) => {
-    const timeEntryCount = await db.timeEntries.where('employeeId').equals(id).count()
+    await db.transaction('rw', db.employees, db.timeEntries, db.leaveWeeks, db.weekExports, async () => {
+      const timeEntryCount = await db.timeEntries.where('employeeId').equals(id).count()
 
-    if (timeEntryCount > 0) {
-      throw new Error(
-        'Profiel heeft registraties en kan niet verwijderd worden. Maak het profiel inactief.',
-      )
-    }
+      if (timeEntryCount > 0) {
+        throw new Error(
+          'Profiel heeft registraties en kan niet verwijderd worden. Maak het profiel inactief.',
+        )
+      }
 
-    await db.employees.delete(id)
+      // Remove dependent rows so they cannot be picked up by a profile that is
+      // later imported with the same id.
+      await db.leaveWeeks.where('employeeId').equals(id).delete()
+      await db.weekExports.where('employeeId').equals(id).delete()
+      await db.employees.delete(id)
+    })
   }
 
   return {

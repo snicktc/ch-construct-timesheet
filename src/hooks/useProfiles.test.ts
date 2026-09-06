@@ -298,6 +298,63 @@ describe('useProfiles Hook', () => {
       ).rejects.toThrow('Profiel heeft registraties')
     })
 
+    it('should remove leave weeks and week exports of the deleted profile only', async () => {
+      const { employeeIds } = await seedTestDb({ timeEntries: false })
+      const [profileToDelete, otherProfile] = employeeIds
+
+      await db.leaveWeeks.bulkAdd([
+        { employeeId: profileToDelete, weekStart: '2026-04-13', createdAt: new Date() },
+        { employeeId: profileToDelete, weekStart: '2026-04-20', createdAt: new Date() },
+        { employeeId: otherProfile, weekStart: '2026-04-13', createdAt: new Date() },
+      ])
+      await db.weekExports.bulkAdd([
+        { employeeId: profileToDelete, weekStart: '2026-04-06', weekEnd: '2026-04-10', exportedAt: new Date(), format: 'pdf' },
+        { employeeId: otherProfile, weekStart: '2026-04-06', weekEnd: '2026-04-10', exportedAt: new Date(), format: 'pdf' },
+      ])
+
+      const { result } = renderHook(() => useProfiles())
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      await act(async () => {
+        await result.current.deleteProfile(profileToDelete)
+      })
+
+      expect(await db.employees.get(profileToDelete)).toBeUndefined()
+      expect(await db.leaveWeeks.where('employeeId').equals(profileToDelete).count()).toBe(0)
+      expect(await db.weekExports.where('employeeId').equals(profileToDelete).count()).toBe(0)
+
+      expect(await db.employees.get(otherProfile)).toBeTruthy()
+      expect(await db.leaveWeeks.where('employeeId').equals(otherProfile).count()).toBe(1)
+      expect(await db.weekExports.where('employeeId').equals(otherProfile).count()).toBe(1)
+    })
+
+    it('should keep leave weeks and week exports when deletion is blocked by time entries', async () => {
+      const { employeeIds } = await seedTestDb()
+      const profileId = employeeIds[0] // Has time entries
+
+      await db.leaveWeeks.add({ employeeId: profileId, weekStart: '2026-04-13', createdAt: new Date() })
+      await db.weekExports.add({ employeeId: profileId, weekStart: '2026-04-06', weekEnd: '2026-04-10', exportedAt: new Date(), format: 'pdf' })
+
+      const { result } = renderHook(() => useProfiles())
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      await expect(
+        act(async () => {
+          await result.current.deleteProfile(profileId)
+        })
+      ).rejects.toThrow('Profiel heeft registraties')
+
+      expect(await db.employees.get(profileId)).toBeTruthy()
+      expect(await db.leaveWeeks.where('employeeId').equals(profileId).count()).toBe(1)
+      expect(await db.weekExports.where('employeeId').equals(profileId).count()).toBe(1)
+    })
+
     it('should allow deletion after making profile inactive', async () => {
       const { result } = renderHook(() => useProfiles())
 
